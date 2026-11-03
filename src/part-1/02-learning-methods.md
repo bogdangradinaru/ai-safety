@@ -21,7 +21,24 @@ Supervised learning is a machine learning approach in which a model is trained u
 Each training example contains:
 - **Input:** e.g. an image captured by an automotive camera.
 - **Label:** e.g. a bounding box identifying a pedestrian.
-- **Output:** the model prediction, which is compared against the ground-truth label.
+- **Output:** the model prediction, which is compared against the ground-truth label
+
+### Practical Lab 1 — Automotive Object Detection
+
+In this exercise, we will train a YOLO object detection
+model using annotated images from the KITTI dataset.
+
+**Learning objectives:**
+- Understand ground-truth annotations.
+- Train an object detection model.
+- Evaluate detection performance.
+- Investigate AI safety implications.
+
+**Tools:** KITTI, YOLO, PyTorch, Google Colab.
+
+[Open notebook in Google Colab](https://colab.research.google.com/github/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
+
+[View notebook on GitHub](https://github.com/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
 
 ### Automotive examples
 
