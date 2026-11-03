@@ -11,7 +11,7 @@ src = "src"
 
 
 [output.html]
-
+site-url = "/ai-safety/"
 # Enable mathematical equations
 mathjax-support = true
 
