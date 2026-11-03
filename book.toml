@@ -1,1 +1,32 @@
+[book]
+title = "AI Safety for Autonomous Driving"
 
+authors = ["Your Name"]
+
+description = "A practical course on artificial intelligence, autonomous driving technologies, and AI safety engineering."
+
+language = "en"
+
+src = "src"
+
+
+[output.html]
+
+# Enable mathematical equations
+mathjax-support = true
+
+# Improve text formatting
+smart-punctuation = true
+
+# Link to the GitHub repository
+git-repository-url = "https://github.com/bogdangradinaru/ai-safety"
+
+# Add an Edit on GitHub link to each chapter
+edit-url-template = "https://github.com/bogdangradinaru/ai-safety/edit/main/src/{path}"
+
+
+[output.html.search]
+
+# Enable full-text search
+enable = true
+limit-results = 20
