@@ -14,11 +14,18 @@ experiments and safety-related assignments.
 
 ## Part I — AI Learning Methods
 
-1. Supervised Learning — KITTI + YOLO
-2. Unsupervised Learning — Clustering
-3. Self-Supervised Learning — LightlySSL
-4. Semi-Supervised Learning — Pseudo-labeling
-5. Reinforcement Learning — HighwayEnv
-6. Imitation Learning — HighwayEnv
+### Lab 01 — Supervised Learning
 
-[Open Lab 01 — Supervised Learning](part-1/01-supervised-kitti-yolo.ipynb)
+**Interactive browser experiment**
+
+Experiment with confidence thresholds, precision and recall.
+
+[Open interactive Python demonstration](part-1/01-supervised-live-demo.qmd)
+
+**Complete automotive Python laboratory**
+
+Train YOLO using the KITTI dataset.
+
+[Open in Google Colab](https://colab.research.google.com/github/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
+
+[View notebook on GitHub](https://github.com/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
