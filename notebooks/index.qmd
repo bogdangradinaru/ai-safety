@@ -1,0 +1,24 @@
+---
+title: "Labs"
+---
+
+# Practical AI Laboratories
+
+This section contains hands-on experiments using
+Python, automotive datasets, machine-learning frameworks
+and autonomous-driving simulation environments.
+
+All laboratories include theoretical explanations,
+executable Python examples, visualizations,
+experiments and safety-related assignments.
+
+## Part I — AI Learning Methods
+
+1. Supervised Learning — KITTI + YOLO
+2. Unsupervised Learning — Clustering
+3. Self-Supervised Learning — LightlySSL
+4. Semi-Supervised Learning — Pseudo-labeling
+5. Reinforcement Learning — HighwayEnv
+6. Imitation Learning — HighwayEnv
+
+[Open Lab 01 — Supervised Learning](part-1/01-supervised-kitti-yolo.ipynb)
