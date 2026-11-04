@@ -1,4 +1,3 @@
-
 project:
   type: website
   output-dir: _site
@@ -8,7 +7,7 @@ project:
     - src/index.qmd
     - "src/part-1/*.md"
     - notebooks/index.qmd
-    - notebooks/part-1/01-supervised-kitti-yolo.ipynb
+    - notebooks/part-1/01-supervised-live-demo.qmd
 
 website:
   title: "AI Safety for Autonomous Driving"
@@ -49,7 +48,7 @@ website:
 
         - section: "Part I — AI Learning Methods"
           contents:
-            - notebooks/part-1/01-supervised-kitti-yolo.ipynb
+            - notebooks/part-1/01-supervised-live-demo.qmd
             - notebooks/part-1/02-unsupervised-clustering.ipynb
             - notebooks/part-1/03-self-supervised-lightly.ipynb            
             - notebooks/part-1/04-semi-supervised-pseudolabels.ipynb
