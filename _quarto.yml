@@ -20,8 +20,8 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - sidebar: lectures
-      - sidebar: labs
+      - sidebar:lectures
+      - sidebar:labs
 
   sidebar:
     - id: lectures
