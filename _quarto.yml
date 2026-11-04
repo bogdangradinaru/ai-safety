@@ -50,6 +50,10 @@ website:
         - section: "Part I — AI Learning Methods"
           contents:
             - notebooks/part-1/01-supervised-kitti-yolo.ipynb
+            - notebooks/part-1/02-unsupervised-clustering.ipynb
+            - notebooks/part-1/03-self-supervised-lightly.ipynb            
+            - notebooks/part-1/04-semi-supervised-pseudolabels.ipynb
+            - notebooks/part-1/05-reinforcement-highwayenv.ipynb
 
 format:
   html:
