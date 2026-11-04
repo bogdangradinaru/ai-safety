@@ -1,0 +1,106 @@
+---
+title: "Lab 01 — Interactive Supervised Learning"
+format: live-html
+
+pyodide:
+  packages:
+    - numpy
+    - matplotlib
+---
+
+# Automotive Object Detection
+
+## Experiment 1 — Confidence Threshold
+
+In object detection, a confidence threshold determines
+which predicted bounding boxes are accepted.
+
+We will investigate how changing this threshold affects
+precision and recall.
+
+### Interactive Python experiment
+
+Change the confidence threshold and click **Run Code**.
+
+```{pyodide}
+#| caption: Interactive confidence threshold experiment
+#| edit: true
+#| runbutton: true
+#| startover: true
+#| persist: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Confidence scores of predicted objects
+confidence = np.array([
+    0.96, 0.88, 0.83, 0.76,
+    0.63, 0.52, 0.44, 0.30
+])
+
+# True positives after matching with ground truth
+matched = np.array([
+    True, True, False, True,
+    False, True, False, False
+])
+
+# Number of ground-truth objects
+total_ground_truth = 6
+
+# Experiment parameter
+confidence_threshold = 0.50
+
+# Select detections above threshold
+selected = confidence >= confidence_threshold
+
+TP = int(np.sum(selected & matched))
+FP = int(np.sum(selected & ~matched))
+FN = total_ground_truth - TP
+
+precision = TP / (TP + FP) if TP + FP else 0
+recall = TP / (TP + FN) if TP + FN else 0
+
+print("Confidence threshold:", confidence_threshold)
+print("True Positives:", TP)
+print("False Positives:", FP)
+print("False Negatives:", FN)
+print("Precision:", round(precision, 3))
+print("Recall:", round(recall, 3))
+
+# Compare precision and recall across thresholds
+thresholds = np.linspace(0.05, 0.95, 19)
+
+precisions = []
+recalls = []
+
+for threshold in thresholds:
+    predictions = confidence >= threshold
+
+    tp = int(np.sum(predictions & matched))
+    fp = int(np.sum(predictions & ~matched))
+    fn = total_ground_truth - tp
+
+    p = tp / (tp + fp) if tp + fp else 0
+    r = tp / (tp + fn) if tp + fn else 0
+
+    precisions.append(p)
+    recalls.append(r)
+
+plt.figure(figsize=(7, 4))
+plt.plot(recalls, precisions, marker="o")
+
+plt.xlabel("Recall")
+plt.ylabel("Precision")
+plt.title("Precision-Recall Trade-off")
+plt.grid(True)
+plt.show()
+```
+
+### Questions
+
+1. What happens when the confidence threshold increases?
+2. Why can increasing the threshold reduce recall?
+3. What could happen if a pedestrian receives a confidence score below the threshold?
+4. How would you select a threshold for a safety-relevant perception function?
+
+**Note:** This is a simplified teaching example using predefined detection scores and ground-truth matching. It does not execute YOLO itself.
