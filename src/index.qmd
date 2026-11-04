@@ -1,0 +1,18 @@
+---
+title: "Lectures"
+---
+
+# Lectures
+
+This section introduces the fundamentals of AI,
+its application in automotive systems and the
+engineering principles required to evaluate AI safety.
+
+## Part I — AI Fundamentals
+
+Understand AI, machine learning, neural networks,
+automotive AI applications and autonomous-driving architectures.
+
+## Part II — Autonomous Driving Data
+
+Coming soon.
