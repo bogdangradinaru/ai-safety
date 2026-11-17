@@ -15,4 +15,12 @@ automotive AI applications and autonomous-driving architectures.
 
 ## Part II — Autonomous Driving Data
 
-Coming soon.
+Explore public driving datasets, dataset formats,
+metadata and annotations, data quality, coverage and bias,
+and data collection, synthesis and augmentation.
+
+## Part III — Safety Principles and Standards
+
+Learn functional safety (ISO 26262), SOTIF (ISO 21448),
+AI safety (ISO 8800), and how to reason about hazards,
+risks and driving scenarios.

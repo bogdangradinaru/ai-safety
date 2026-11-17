@@ -6,6 +6,8 @@ project:
     - index.qmd
     - src/index.qmd
     - "src/part-1/*.md"
+    - "src/part-2/*.md"
+    - "src/part-3/*.md"
     - notebooks/index.qmd
     - notebooks/part-1/01-supervised-live-demo.qmd
 
@@ -38,6 +40,21 @@ website:
             - src/part-1/04-automotive-applications.md
             - src/part-1/05-system-architectures.md
             - src/part-1/06-ai-deployment.md
+
+        - section: "Part II — Autonomous Driving Data"
+          contents:
+            - src/part-2/07-public-datasets.md
+            - src/part-2/08-dataset-formats.md
+            - src/part-2/09-metadata-labels-annotations.md
+            - src/part-2/10-data-quality-coverage-bias.md
+            - src/part-2/11-data-collection-synthesis-augmentation.md
+
+        - section: "Part III — Safety Principles and Standards"
+          contents:
+            - src/part-3/12-iso-26262.md
+            - src/part-3/13-sotif-iso-21448.md
+            - src/part-3/14-ai-safety-iso-8800.md
+            - src/part-3/15-hazards-risks-scenarios.md
 
     - id: labs
       title: "Labs"
