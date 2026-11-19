@@ -6,6 +6,7 @@ project:
     - index.qmd
     - src/index.qmd
     - "src/part-1/*.md"
+    - "src/part-1/*.qmd"
     - "src/part-2/*.md"
     - "src/part-3/*.md"
     - notebooks/index.qmd
@@ -36,7 +37,7 @@ website:
           contents:
             - src/part-1/01-introduction.md
             - src/part-1/02-learning-methods.md
-            - src/part-1/03-model-architectures.md
+            - src/part-1/03-model-architectures.qmd
             - src/part-1/04-automotive-applications.md
             - src/part-1/05-system-architectures.md
             - src/part-1/06-ai-deployment.md
