@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Industry Frameworks for the AI Safety in Automotive Course</title>
+<style>
+  :root { --fg:#1f2430; --muted:#5b6475; --line:#d9dde5; --accent:#1d4ed8; --bg:#ffffff; --band:#f4f6fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e6e9ef; --muted:#9aa3b5; --line:#2e3545; --accent:#7aa2ff; --bg:#14171f; --band:#1b1f2a; }
+  }
+  body { font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--fg); background:var(--bg); max-width:1000px; margin:2rem auto; padding:0 1.25rem; }
+  h1 { font-size:1.9rem; margin-bottom:.25rem; }
+  h2 { margin-top:2.5rem; padding-bottom:.3rem; border-bottom:2px solid var(--line); }
+  h3 { margin-top:1.75rem; }
+  a { color:var(--accent); }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.95rem; }
+  th, td { border:1px solid var(--line); padding:.5rem .7rem; text-align:left; vertical-align:top; }
+  th { background:var(--band); }
+  .note { background:var(--band); border-left:4px solid var(--accent); padding:.75rem 1rem; margin:1rem 0; }
+  .muted { color:var(--muted); }
+  nav ul { columns:2; }
+  @media print { body { max-width:none; } a { color:inherit; } }
+</style>
+</head>
+<body>
+
+<h1>Industry Frameworks for the Course</h1>
+<p class="muted">Suggested automotive and AI-company frameworks, organised by course topic. Compiled from memory: check names, licences and release status before putting them into slides. The newest NVIDIA and Chinese-OEM items are the least certain and are marked "verify".</p>
+
+<nav>
+  <strong>Contents</strong>
+  <ul>
+    <li><a href="#learning">1. Learning methods (Ch. 2, 11)</a></li>
+    <li><a href="#architectures">2. Model architectures (Ch. 3)</a></li>
+    <li><a href="#datasets">3. Datasets and tooling (Ch. 7–9, 11)</a></li>
+    <li><a href="#safety">4. Safety frameworks (Part III)</a></li>
+    <li><a href="#priorities">5. Suggested priorities</a></li>
+  </ul>
+</nav>
+
+<h2 id="learning">1. Learning methods (Ch. 2, plus Ch. 11)</h2>
+<table>
+  <thead><tr><th>Company</th><th>Framework or approach</th><th>What to teach with it</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Tesla</strong></td><td>Data engine, shadow mode, fleet auto-labelling, end-to-end FSD (v12 onward)</td><td>Trigger-based collection and the closed data loop (§11.2). Also imitation learning at fleet scale.</td></tr>
+    <tr><td><strong>Wayve</strong></td><td>End-to-end imitation and RL, <strong>LINGO</strong> (driving with language), <strong>GAIA</strong> (generative world model)</td><td>End-to-end learning, language-grounded driving, and world models as a learning and evaluation tool.</td></tr>
+    <tr><td><strong>Waymo</strong></td><td><strong>EMMA</strong> (multimodal LLM for driving), scaling-law studies, <strong>Waymax</strong> (data-driven simulator)</td><td>Large-model pre-training and fine-tuning. Also closed-loop evaluation from logged data.</td></tr>
+    <tr><td><strong>NVIDIA</strong></td><td><strong>Cosmos</strong> world foundation models, <strong>Alpamayo</strong> (VLA reasoning models; newer, verify)</td><td>Foundation models, synthetic data for training, and reasoning or VLA approaches.</td></tr>
+    <tr><td><strong>Mobileye</strong></td><td><strong>CAIS</strong> (compound AI system), <strong>RSS</strong> (Responsibility-Sensitive Safety)</td><td>A counter-example to pure end-to-end: modular AI plus a formal safety envelope.</td></tr>
+    <tr><td><strong>comma.ai</strong></td><td><strong>openpilot</strong> (open source)</td><td>Students can read real end-to-end driving code.</td></tr>
+    <tr><td><strong>Baidu</strong></td><td><strong>Apollo</strong> (open platform)</td><td>A full open stack for comparison.</td></tr>
+    <tr><td><strong>Li Auto, XPeng, Huawei</strong></td><td>VLA and end-to-end stacks (details vary, verify)</td><td>Shows the same trend outside the US and EU.</td></tr>
+  </tbody>
+</table>
+<div class="note"><strong>Teaching angle:</strong> compare <strong>modular</strong> (Mobileye, Waymo's classical parts), <strong>end-to-end</strong> (Tesla, Wayve, comma) and <strong>hybrid or VLA</strong> (Waymo EMMA, NVIDIA, Li Auto). Then ask what each means for safety evidence, which leads into Part III.</div>
+
+<h2 id="architectures">2. Model architectures (Ch. 3)</h2>
+<p>Many of these are academic or open-source, but the industry labs and OEMs behind them make them relevant.</p>
+<table>
+  <thead><tr><th>Area</th><th>Framework or model</th><th>Network type</th><th>Origin</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Image backbones and 2D detection</strong></td><td>ResNet, EfficientNet, RegNet, YOLO family</td><td>CNN</td><td>Academic and open source. Standard backbones in most production perception stacks.</td></tr>
+    <tr><td><strong>Camera to BEV</strong></td><td>BEVFormer, BEVFusion (also LSS, BEVDet)</td><td>CNN backbone, Transformer (BEVFormer), multi-task (BEVFusion)</td><td>Academic, used widely in industry. BEVFusion has an NVIDIA/MIT lineage.</td></tr>
+    <tr><td><strong>Occupancy</strong></td><td>Occupancy networks</td><td>CNN backbone, Transformer, MLP decoder</td><td>Tesla popularised them. Open variants include Occ3D and SurroundOcc.</td></tr>
+    <tr><td><strong>Multi-task backbone</strong></td><td>HydraNets, YOLOP</td><td>Multi-task, CNN</td><td>Tesla (HydraNets). YOLOP is academic (HUST).</td></tr>
+    <tr><td><strong>LiDAR detection</strong></td><td>PointPillars, CenterPoint (also VoxelNet, SECOND, PV-RCNN)</td><td>Point-cloud, CNN on pillars or voxels</td><td>PointPillars came from nuTonomy (now Motional).</td></tr>
+    <tr><td><strong>Point-cloud learning</strong></td><td>PointNet, PointNet++, Point Transformer, Cylinder3D, RangeNet++</td><td>Point-cloud, MLP (PointNet), Transformer, CNN</td><td>Academic. PointNet is the origin of per-point shared MLPs.</td></tr>
+    <tr><td><strong>Vectorised scene encoding</strong></td><td>VectorNet, MLP-based planning baselines (AD-MLP)</td><td>MLP / feedforward</td><td>VectorNet from Waymo. AD-MLP is academic and shows how far an ego-state MLP gets on nuScenes open-loop metrics.</td></tr>
+    <tr><td><strong>Temporal and recurrent models</strong></td><td>ConvLSTM, Social LSTM, ChauffeurNet (AgentRNN), Tesla's spatial-temporal RNN video module, openpilot recurrent state (GRU, verify)</td><td>RNN / temporal</td><td>Academic, Waymo (ChauffeurNet), Tesla, comma.ai.</td></tr>
+    <tr><td><strong>Motion prediction</strong></td><td>Wayformer, MotionLM, Scene Transformer</td><td>Transformer</td><td>Waymo</td></tr>
+    <tr><td><strong>Probabilistic prediction</strong></td><td>Trajectron++, DiffusionDrive</td><td>Autoencoder / generative (CVAE with LSTM, diffusion)</td><td>Trajectron++ from Stanford with NVIDIA involvement (verify). DiffusionDrive from HUST and Horizon Robotics (verify).</td></tr>
+    <tr><td><strong>End-to-end planning</strong></td><td>UniAD, VAD, SparseDrive, Hydra-MDP</td><td>Transformer, multi-task</td><td>OpenDriveLab and Horizon Robotics. Hydra-MDP has NVIDIA involvement.</td></tr>
+    <tr><td><strong>Vision-language-action</strong></td><td>EMMA, LINGO-2, DriveVLM, Alpamayo-R1</td><td>Transformer (LLM-based)</td><td>Waymo, Wayve, Li Auto/Tsinghua, NVIDIA</td></tr>
+    <tr><td><strong>Foundation vision</strong></td><td>DINOv2, SAM 2, Masked Autoencoders</td><td>Transformer (ViT), autoencoder (MAE)</td><td>Meta</td></tr>
+    <tr><td><strong>World models and generative simulation</strong></td><td>GAIA-1/2, Cosmos, DriveGAN</td><td>Autoencoder / generative (tokenizers, diffusion, autoregressive, GAN)</td><td>Wayve, NVIDIA</td></tr>
+    <tr><td><strong>Anomaly and OOD detection</strong></td><td>Reconstruction-based autoencoders</td><td>Autoencoder</td><td>Academic. Relevant to Part III runtime monitoring.</td></tr>
+  </tbody>
+</table>
+
+<h3>Index by network type</h3>
+<p>The same models grouped by the architecture family used in Ch. 3. Hybrids appear under every family they contain.</p>
+<table>
+  <thead><tr><th>Network type</th><th>Where it appears in automotive AI</th><th>Examples above</th></tr></thead>
+  <tbody>
+    <tr><td><strong>CNN</strong></td><td>Camera backbones, 2D detection, segmentation, BEV-grid heads</td><td>ResNet, EfficientNet, YOLO, HydraNets, LSS, PointPillars (2D CNN on pillars)</td></tr>
+    <tr><td><strong>Transformer</strong></td><td>Camera-to-BEV, motion prediction, end-to-end planning, VLA, foundation vision</td><td>BEVFormer, Wayformer, MotionLM, Scene Transformer, UniAD, EMMA, DINOv2, SAM 2</td></tr>
+    <tr><td><strong>MLP / feedforward</strong></td><td>Prediction and planning heads, per-point encoders, vectorised map and agent encoders</td><td>PointNet, VectorNet, AD-MLP, occupancy decoders</td></tr>
+    <tr><td><strong>RNN / temporal models</strong></td><td>Temporal fusion, tracking, trajectory sequence modelling</td><td>ConvLSTM, Social LSTM, ChauffeurNet, Tesla video module, openpilot (verify)</td></tr>
+    <tr><td><strong>Autoencoder / generative models</strong></td><td>World models, synthetic data, probabilistic prediction, anomaly detection</td><td>GAIA, Cosmos, DriveGAN, Trajectron++, DiffusionDrive, MAE</td></tr>
+    <tr><td><strong>Point-cloud networks</strong></td><td>LiDAR detection and segmentation</td><td>PointNet++, PointPillars, CenterPoint, VoxelNet, Cylinder3D, Point Transformer</td></tr>
+    <tr><td><strong>Multi-task networks</strong></td><td>Shared backbone with several heads, for example detection, lanes and depth</td><td>HydraNets, YOLOP, BEVFusion, UniAD, Hydra-MDP</td></tr>
+  </tbody>
+</table>
+<div class="note"><strong>Teaching angle:</strong> each family has different safety questions. For example, CNNs raise robustness and adversarial-patch issues, Transformers raise explainability and attention-reliability issues, generative models raise hallucination and the validity of synthetic evidence, and multi-task networks raise common-cause failure through the shared backbone. Several mappings, mainly for the temporal and generative rows, are from memory, so verify them before use.</div>
+
+<h3>Deployment platforms (Ch. 6)</h3>
+<p>NVIDIA DRIVE (Orin, Thor) with TensorRT and DriveOS, Mobileye EyeQ, Qualcomm Snapdragon Ride, and TI TDA4. Their toolchains cover quantisation, compilation and safety-certified OS support.</p>
+
+<h3>Software and system frameworks (Ch. 5)</h3>
+<p>AUTOSAR Adaptive, ROS 2 and Autoware (open source).</p>
+
+<h2 id="datasets">3. Datasets and tooling (Ch. 7–9, 11)</h2>
+<table>
+  <thead><tr><th>Dataset</th><th>Owner</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Waymo Open Dataset</strong></td><td>Waymo</td><td>Perception, motion and end-to-end variants.</td></tr>
+    <tr><td><strong>nuScenes / nuPlan</strong></td><td>Motional</td><td>Multimodal, plus planning benchmarks.</td></tr>
+    <tr><td><strong>Argoverse 2</strong></td><td>Argo AI</td><td>Includes maps and sensor, lidar and motion-forecasting data.</td></tr>
+    <tr><td><strong>Lyft Level 5</strong></td><td>Lyft (now Woven by Toyota)</td><td>Prediction and perception.</td></tr>
+    <tr><td><strong>KITTI</strong></td><td>KIT and Toyota Technological Institute</td><td>Historic baseline.</td></tr>
+    <tr><td><strong>A2D2</strong></td><td>Audi</td><td>European OEM example.</td></tr>
+    <tr><td><strong>Cityscapes</strong></td><td>Daimler with TU Darmstadt</td><td>Segmentation.</td></tr>
+    <tr><td><strong>Zenseact Open Dataset (ZOD)</strong></td><td>Zenseact (Volvo Cars)</td><td>European highway and urban driving.</td></tr>
+    <tr><td><strong>ONCE, PandaSet, BDD100K, Mapillary Vistas</strong></td><td>Huawei, Hesai/Scale, Berkeley, Meta</td><td>Diversity of sensors and regions.</td></tr>
+    <tr><td><strong>Wayve-101, comma2k19</strong></td><td>Wayve, comma.ai</td><td>End-to-end oriented.</td></tr>
+    <tr><td><strong>NVIDIA Physical AI AV dataset</strong></td><td>NVIDIA</td><td>Newer, verify.</td></tr>
+  </tbody>
+</table>
+
+<h3>Formats and standards (Ch. 8–9)</h3>
+<ul>
+  <li>ASAM standards: <strong>OpenLABEL</strong> (labels), <strong>OpenSCENARIO</strong> (scenarios), <strong>OpenDRIVE</strong> (road networks) and <strong>OSI</strong> (simulation interfaces).</li>
+  <li><strong>MCAP</strong> (Foxglove) and ROS bags for logs.</li>
+  <li>Waymo TFRecord and the nuScenes devkit as vendor formats.</li>
+  <li>Annotation platforms such as Scale AI, Encord, CVAT and understand.ai (dSPACE).</li>
+</ul>
+
+<h3>Synthesis tools (Ch. 11)</h3>
+<ul>
+  <li><strong>NVIDIA Omniverse and DRIVE Sim</strong>, with <strong>Cosmos</strong> for generative augmentation.</li>
+  <li><strong>Applied Intuition</strong> (simulation and data tooling).</li>
+  <li><strong>CARLA</strong> (open source), <strong>rFpro</strong> and <strong>Parallel Domain</strong>.</li>
+  <li><strong>Waabi World</strong> and <strong>Waymo SimulationCity</strong>.</li>
+  <li><strong>Wayve GAIA</strong> (generative scenes).</li>
+  <li><strong>Mobileye REM</strong> and Mapillary for crowdsourced data and maps.</li>
+  <li><strong>Foretellix Foretify</strong> for scenario coverage.</li>
+  <li>Anonymisation vendors such as Brighter AI.</li>
+</ul>
+
+<h2 id="safety">4. Safety frameworks for Part III</h2>
+<ul>
+  <li><strong>Mobileye RSS</strong>, which was standardised as IEEE 2846.</li>
+  <li><strong>NVIDIA Halos</strong>, a full-stack safety approach (verify current scope).</li>
+  <li><strong>Waymo</strong> and <strong>Aurora</strong> safety-case publications.</li>
+  <li><strong>UL 4600</strong>, a safety-case standard for autonomous products.</li>
+  <li><strong>Safety First for Automated Driving (SaFAD)</strong>, a white paper from Aptiv, Audi, BMW, Continental, Daimler, VW, Baidu and others. It is a good bridge to ISO 8800.</li>
+  <li><strong>Mercedes Drive Pilot</strong> (Level 3) as a regulated deployment case study.</li>
+</ul>
+
+<h2 id="priorities">5. Suggested priorities</h2>
+<p>If you can only include a few:</p>
+<ol>
+  <li><strong>Tesla</strong>, <strong>Waymo</strong> and <strong>Wayve</strong> for learning methods.</li>
+  <li><strong>UniAD</strong>, <strong>BEVFormer</strong> and <strong>Waymo EMMA</strong> for architectures.</li>
+  <li><strong>Waymo Open Dataset</strong>, <strong>nuScenes</strong> and <strong>ASAM OpenLABEL/OpenSCENARIO</strong> for data.</li>
+  <li><strong>NVIDIA Cosmos and Omniverse</strong> and <strong>CARLA</strong> for synthesis.</li>
+  <li><strong>Mobileye RSS</strong> as the safety counterpoint.</li>
+</ol>
+
+</body>
+</html>

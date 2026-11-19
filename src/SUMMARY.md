@@ -7,7 +7,7 @@
 # Part I — AI Fundamentals
 - [Introduction to Artificial Intelligence](part-1/01-introduction.md)
 - [AI Learning Methods and Training Paradigms](part-1/02-learning-methods.md)
-- [AI Model Architectures and Technologies](part-1/03-model-architectures.qmd)
+- [AI Model Architectures and Technologies](part-1/03-model-architectures.md)
 - [Applications of AI in Automotive](part-1/04-automotive-applications.md)
 - [Autonomous Driving System Architectures](part-1/05-system-architectures.md)
 - [AI Deployment in Automotive Systems](part-1/06-ai-deployment.md)

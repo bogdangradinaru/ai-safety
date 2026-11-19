@@ -1,6 +1,3 @@
----
-jupyter: python3
----
 
 # 3. AI Model Architectures and Technologies
 
@@ -15,6 +12,189 @@ Recall from Section 2.2 that training means finding the parameters $\theta$ that
 $$
 \theta^{*} = \arg\min_{\theta} \; \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\big(f_\theta(x_i),\, y_i\big)
 $$
+
+#### Try it: the simplest possible $f_\theta$ — linear regression
+
+Before opening up a full neural network, it helps to see this formula at work in its simplest case: $f_\theta(x) = wx + b$ (a straight line) with $\mathcal{L} = (\hat y - y)^2$. This is ordinary **linear regression** — one weight $w$, one bias $b$, no activation function.
+
+Edit the points below and watch $w$, $b$ and the mean squared error update live.
+
+<div id="lr-widget" style="border:1px solid #d9dde5;border-radius:8px;padding:1rem;margin:1.25rem 0;max-width:720px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;">
+  <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+    <button type="button" data-lr-preset="clean">Clean linear trend</button>
+    <button type="button" data-lr-preset="outlier">With an outlier</button>
+    <button type="button" data-lr-preset="curved">Curved data</button>
+    <button type="button" data-lr-preset="clear">Clear points</button>
+    <label style="margin-left:.5rem;display:flex;align-items:center;gap:.3rem;">
+      <input type="checkbox" id="lr-residuals"> show residuals
+    </label>
+  </div>
+  <canvas id="lr-canvas" width="680" height="380" style="width:100%;height:auto;border:1px solid #d9dde5;border-radius:6px;cursor:crosshair;touch-action:none;"></canvas>
+  <p style="font-size:.9rem;color:#5b6475;margin:.5rem 0 0;">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
+  <div id="lr-stats" style="margin-top:.5rem;font-size:.95rem;line-height:1.6;"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("lr-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("lr-stats");
+  const residualsBox = document.getElementById("lr-residuals");
+
+  const xMin = 0, xMax = 10, yMin = 0, yMax = 10;
+  const pad = 36;
+
+  const presets = {
+    clean:   [[1,1.8],[2,2.6],[3,4.1],[4,4.7],[5,5.9],[6,6.6],[7,7.4],[8,8.3]],
+    outlier: [[1,1.8],[2,2.6],[3,4.1],[4,4.7],[5,5.9],[6,6.6],[7,7.4],[8,0.5]],
+    curved:  [[1,1.0],[2,1.3],[3,2.0],[4,3.3],[5,5.2],[6,7.6],[7,9.3],[8,9.8]],
+  };
+
+  let points = presets.clean.map(([x, y]) => ({ x, y }));
+  let dragIndex = -1;
+
+  function toPx(x, y) {
+    const w = canvas.width, h = canvas.height;
+    return [
+      pad + (x - xMin) / (xMax - xMin) * (w - 2 * pad),
+      h - pad - (y - yMin) / (yMax - yMin) * (h - 2 * pad),
+    ];
+  }
+  function toData(px, py) {
+    const w = canvas.width, h = canvas.height;
+    return [
+      xMin + (px - pad) / (w - 2 * pad) * (xMax - xMin),
+      yMin + (h - pad - py) / (h - 2 * pad) * (yMax - yMin),
+    ];
+  }
+
+  function fitLine() {
+    const n = points.length;
+    if (n < 2) return { w: 0, b: n ? points[0].y : 0, mse: NaN, r2: NaN };
+    const xbar = points.reduce((s, p) => s + p.x, 0) / n;
+    const ybar = points.reduce((s, p) => s + p.y, 0) / n;
+    let num = 0, den = 0;
+    for (const p of points) { num += (p.x - xbar) * (p.y - ybar); den += (p.x - xbar) ** 2; }
+    const w = den === 0 ? 0 : num / den;
+    const b = ybar - w * xbar;
+    let ssRes = 0, ssTot = 0;
+    for (const p of points) {
+      const pred = w * p.x + b;
+      ssRes += (p.y - pred) ** 2;
+      ssTot += (p.y - ybar) ** 2;
+    }
+    const mse = ssRes / n;
+    const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+    return { w, b, mse, r2 };
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // axes
+    ctx.strokeStyle = "#d9dde5";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+    const { w: slope, b: intercept, mse, r2 } = fitLine();
+
+    // residuals
+    if (residualsBox.checked && points.length >= 2) {
+      ctx.strokeStyle = "#f2b8b5";
+      for (const p of points) {
+        const [px, py1] = toPx(p.x, p.y);
+        const [, py2] = toPx(p.x, slope * p.x + intercept);
+        ctx.beginPath(); ctx.moveTo(px, py1); ctx.lineTo(px, py2); ctx.stroke();
+      }
+    }
+
+    // fitted line
+    if (points.length >= 2) {
+      const [x1, y1] = toPx(xMin, slope * xMin + intercept);
+      const [x2, y2] = toPx(xMax, slope * xMax + intercept);
+      ctx.strokeStyle = "#1d4ed8";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+
+    // points
+    ctx.fillStyle = "#1f2430";
+    for (const p of points) {
+      const [px, py] = toPx(p.x, p.y);
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.fill();
+    }
+
+    statsEl.innerHTML = points.length < 2
+      ? "Add at least two points to fit a line."
+      : `w (slope) = ${slope.toFixed(3)} &nbsp;|&nbsp; b (intercept) = ${intercept.toFixed(3)} &nbsp;|&nbsp; MSE = ${mse.toFixed(3)} &nbsp;|&nbsp; R² = ${r2.toFixed(3)}`;
+  }
+
+  function nearestIndex(px, py) {
+    let best = -1, bestDist = 12; // px hit radius
+    points.forEach((p, i) => {
+      const [qx, qy] = toPx(p.x, p.y);
+      const d = Math.hypot(qx - px, qy - py);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+  }
+
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const idx = nearestIndex(px, py);
+    if (idx >= 0) {
+      dragIndex = idx;
+    } else {
+      const [x, y] = toData(px, py);
+      if (x >= xMin && x <= xMax && y >= yMin && y <= yMax) {
+        points.push({ x, y });
+        dragIndex = points.length - 1;
+      }
+    }
+    draw();
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (dragIndex < 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const [x, y] = toData(px, py);
+    points[dragIndex] = {
+      x: Math.min(xMax, Math.max(xMin, x)),
+      y: Math.min(yMax, Math.max(yMin, y)),
+    };
+    draw();
+  });
+
+  window.addEventListener("mouseup", () => { dragIndex = -1; });
+
+  canvas.addEventListener("dblclick", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const idx = nearestIndex(px, py);
+    if (idx >= 0) { points.splice(idx, 1); draw(); }
+  });
+
+  residualsBox.addEventListener("change", draw);
+
+  document.querySelectorAll("#lr-widget [data-lr-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-lr-preset");
+      points = key === "clear" ? [] : presets[key].map(([x, y]) => ({ x, y }));
+      draw();
+    });
+  });
+
+  draw();
+})();
+</script>
+
+> **Note:** $w$ and $b$ above are computed with the closed-form least-squares solution, $w = \dfrac{\sum_i (x_i-\bar x)(y_i-\bar y)}{\sum_i (x_i-\bar x)^2}$, $b = \bar y - w\bar x$ — the direct solution for this simplest case of $f_\theta$. Section 3.3 introduces the general method (gradient descent) used when $f_\theta$ is a full neural network and no closed-form solution exists.
 
 In this chapter, $f_\theta$ — the "model" — is opened up and explained. The chapter is organised in the order a beginner needs it:
 
@@ -97,34 +277,6 @@ $$
 
 **Pooling** shrinks a feature map by keeping a summary of each small region — for example, **max pooling** keeps only the largest value in each $2\times2$ block. This reduces the amount of computation and makes the network less sensitive to tiny shifts of an object in the image.
 
-#### Making the sliding-window sum concrete
-
-A convolution is, at each window position, nothing more than a **sum of products** (a dot product) between the filter and the pixels underneath it. The code below slides a $1\times3$ filter over a $1\times8$ row of pixels one step at a time, printing the sum computed at each position, then checks the result against the output-size formula above.
-
-```{python}
-import numpy as np
-
-row = np.array([0, 0, 1, 2, 1, 0, 0, 3])   # a tiny 1D "image"
-kernel = np.array([-1, 2, -1])             # a simple edge-detecting filter
-stride = 1
-
-n, k, s, p = len(row), len(kernel), stride, 0
-n_out = (n + 2 * p - k) // s + 1
-print(f"Formula: n_out = floor(({n} + 2*{p} - {k}) / {s}) + 1 = {n_out}")
-
-feature_map = []
-for i in range(0, n - k + 1, s):
-    window = row[i : i + k]
-    total = int(np.sum(window * kernel))   # the sliding-window sum
-    feature_map.append(total)
-    print(f"position {i}: window={window} · kernel={kernel} -> sum = {total}")
-
-print("\nResulting feature map:", feature_map)
-assert len(feature_map) == n_out
-```
-
-Each printed line is exactly one evaluation of $\sum_j \text{window}_j \cdot \text{kernel}_j$ — the same sum, repeated at every sliding position, that defines a convolution.
-
 ### 3.2.6 Normalisation layers
 
 As numbers pass through many layers they can become very large or very small, which makes learning slow and unstable. A **normalisation layer** rescales the numbers to a standard range:
@@ -206,28 +358,6 @@ A **loss function** $\mathcal{L}$ is a score that tells us how wrong a predictio
 
 Focal loss is particularly useful in driving data, where "background" vastly outnumbers objects of interest.
 
-#### Making the cross-entropy sum concrete
-
-Cross-entropy, $-\sum_c y_c \log \hat{y}_c$, looks like it sums over every class, but because the true label $y$ is **one-hot** (1 for the correct class, 0 for all others), every term except the correct class vanishes. The sum collapses to a single $-\log(\cdot)$ of the predicted probability for the correct class:
-
-```{python}
-import numpy as np
-
-classes = ["car", "pedestrian", "cyclist"]
-y_true = np.array([0, 1, 0])          # one-hot: the correct class is "pedestrian"
-y_pred = np.array([0.10, 0.70, 0.20]) # predicted probabilities (must sum to 1)
-
-terms = -y_true * np.log(y_pred)
-for c, t in zip(classes, terms):
-    print(f"-y_{c} * log(y_hat_{c}) = {t:.4f}")
-
-loss = terms.sum()
-print(f"\nSum over all classes = {loss:.4f}")
-print(f"-log(y_hat_pedestrian) alone = {-np.log(y_pred[1]):.4f}  (matches, since all other terms are 0)")
-```
-
-This is why, in practice, cross-entropy is usually implemented as a single `-log` lookup rather than a literal sum — but the formula above is what justifies that shortcut.
-
 ### 3.3.3 Gradients and backpropagation
 
 The **gradient** of the loss with respect to a weight, $\dfrac{\partial \mathcal{L}}{\partial w}$, tells us how the loss changes if that weight is increased slightly. Imagine standing on a hill in thick fog: you cannot see the valley, but you can feel which way the ground slopes. The gradient is that slope, and moving *against* it takes you downhill, towards a lower loss.
@@ -255,29 +385,6 @@ Take a single neuron without activation, $\hat{y} = wx + b$, with input $x=2$, t
 | New forward pass | $1.3 \times 2 + 0.4$ | $\hat{y}=3.0$ |
 
 After a single update the prediction moved from 1 to 3, which is exactly the target. (The learning rate was chosen to keep the numbers clean; in real networks many small steps are needed.)
-
-#### Checking the chain rule symbolically
-
-The table above computed each derivative by hand. The code below uses `sympy` to differentiate $\mathcal{L}$ symbolically — i.e. to carry out the chain rule $\dfrac{\partial \mathcal{L}}{\partial w} = \dfrac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \dfrac{\partial \hat{y}}{\partial w}$ automatically — and then substitutes the same numbers to confirm the two results match exactly.
-
-```{python}
-import sympy as sp
-
-w, b, x, y = sp.symbols('w b x y')
-y_hat = w * x + b
-loss = (y_hat - y) ** 2
-
-dL_dw = sp.diff(loss, w)   # symbolic chain rule, done automatically
-dL_db = sp.diff(loss, b)
-
-print("dL/dw (symbolic) =", sp.simplify(dL_dw))
-print("dL/db (symbolic) =", sp.simplify(dL_db))
-
-values = {w: 0.5, b: 0, x: 2, y: 3}
-print("\nAt w=0.5, b=0, x=2, y=3:")
-print("dL/dw =", dL_dw.subs(values), " (matches the -8 computed by hand)")
-print("dL/db =", dL_db.subs(values), " (matches the -4 computed by hand)")
-```
 
 This is exactly what `loss.backward()` does automatically in PyTorch for networks with millions of weights: apply the chain rule layer by layer, rather than working it out by hand as above.
 
