@@ -20,18 +20,18 @@ Before opening up a full neural network, it helps to see this formula at work in
 Edit the points below and watch $w$, $b$ and the mean squared error update live.
 
 <div id="lr-widget" style="border:1px solid #d9dde5;border-radius:8px;padding:1rem;margin:1.25rem 0;max-width:720px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;">
-  <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
-    <button type="button" data-lr-preset="clean">Clean linear trend</button>
-    <button type="button" data-lr-preset="outlier">With an outlier</button>
-    <button type="button" data-lr-preset="curved">Curved data</button>
-    <button type="button" data-lr-preset="clear">Clear points</button>
-    <label style="margin-left:.5rem;display:flex;align-items:center;gap:.3rem;">
-      <input type="checkbox" id="lr-residuals"> show residuals
-    </label>
-  </div>
-  <canvas id="lr-canvas" width="680" height="380" style="width:100%;height:auto;border:1px solid #d9dde5;border-radius:6px;cursor:crosshair;touch-action:none;"></canvas>
-  <p style="font-size:.9rem;color:#5b6475;margin:.5rem 0 0;">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
-  <div id="lr-stats" style="margin-top:.5rem;font-size:.95rem;line-height:1.6;"></div>
+<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+<button type="button" data-lr-preset="clean">Clean linear trend</button>
+<button type="button" data-lr-preset="outlier">With an outlier</button>
+<button type="button" data-lr-preset="curved">Curved data</button>
+<button type="button" data-lr-preset="clear">Clear points</button>
+<label style="margin-left:.5rem;display:flex;align-items:center;gap:.3rem;">
+<input type="checkbox" id="lr-residuals"> show residuals
+</label>
+</div>
+<canvas id="lr-canvas" width="680" height="380" style="width:100%;height:auto;border:1px solid #d9dde5;border-radius:6px;cursor:crosshair;touch-action:none;"></canvas>
+<p style="font-size:.9rem;color:#5b6475;margin:.5rem 0 0;">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
+<div id="lr-stats" style="margin-top:.5rem;font-size:.95rem;line-height:1.6;"></div>
 </div>
 
 <script>
