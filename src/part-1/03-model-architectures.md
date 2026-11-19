@@ -397,10 +397,16 @@ A network with many hidden layers is called a **deep** network, which is where t
 <div id="layer-widget" class="aisafety-widget">
 <div class="aisw-controls">
 <label>n_in <input type="range" id="layer-nin" min="1" max="6" step="1" value="3"> <span id="layer-nin-val">3</span></label>
+<label>hidden layers <select id="layer-hidden-count"><option value="0" selected>0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+<label>hidden size <input type="range" id="layer-hidden-size" min="1" max="6" step="1" value="4"> <span id="layer-hidden-size-val">4</span></label>
 <label>n_out <input type="range" id="layer-nout" min="1" max="6" step="1" value="4"> <span id="layer-nout-val">4</span></label>
 </div>
-<canvas id="layer-canvas" width="560" height="340"></canvas>
-<p class="aisw-hint">Every input node is connected to every output node — one weight per edge, plus one bias per output node.</p>
+<canvas id="layer-canvas" width="640" height="360"></canvas>
+<div class="aisw-controls">
+<label id="layer-selected-label">Click an edge to edit its weight.</label>
+<label>weight <input type="number" id="layer-weight-input" step="0.1" style="width:5rem;" disabled></label>
+</div>
+<p class="aisw-hint">Every node in one column connects to every node in the next (fully connected). Edge colour and thickness reflect each weight's value. Changing the architecture resets all weights to 1.</p>
 <div id="layer-stats" class="aisw-stats"></div>
 </div>
 
@@ -411,10 +417,20 @@ A network with many hidden layers is called a **deep** network, which is where t
   const statsEl = document.getElementById("layer-stats");
   const ninInput = document.getElementById("layer-nin");
   const noutInput = document.getElementById("layer-nout");
+  const hiddenCountSelect = document.getElementById("layer-hidden-count");
+  const hiddenSizeInput = document.getElementById("layer-hidden-size");
   const ninVal = document.getElementById("layer-nin-val");
   const noutVal = document.getElementById("layer-nout-val");
+  const hiddenSizeVal = document.getElementById("layer-hidden-size-val");
+  const selectedLabel = document.getElementById("layer-selected-label");
+  const weightInput = document.getElementById("layer-weight-input");
 
-  function nodePositions(n, x, h, pad) {
+  const pad = 30, leftMargin = 70;
+  let sizes = [];
+  let weights = [];
+  let selected = null;
+
+  function nodePositions(n, x, h) {
     const positions = [];
     for (let i = 0; i < n; i++) {
       const y = n === 1 ? h / 2 : pad + (i / (n - 1)) * (h - 2 * pad);
@@ -423,51 +439,163 @@ A network with many hidden layers is called a **deep** network, which is where t
     return positions;
   }
 
-  function draw() {
+  function colFor(index, total, w) {
+    if (total === 1) return leftMargin;
+    return leftMargin + index * ((w - 2 * leftMargin) / (total - 1));
+  }
+
+  function columnsFor(w, h) {
+    return sizes.map((size, l) => ({
+      size,
+      nodes: nodePositions(size, colFor(l, sizes.length, w), h),
+    }));
+  }
+
+  function layerLabel(l) {
+    if (l === 0) return "x";
+    if (l === sizes.length - 1) return "o";
+    return "h";
+  }
+
+  function rebuild() {
     const nIn = parseInt(ninInput.value, 10);
     const nOut = parseInt(noutInput.value, 10);
+    const hiddenCount = parseInt(hiddenCountSelect.value, 10);
+    const hiddenSize = parseInt(hiddenSizeInput.value, 10);
     ninVal.textContent = nIn;
     noutVal.textContent = nOut;
+    hiddenSizeVal.textContent = hiddenSize;
 
+    sizes = [nIn];
+    for (let i = 0; i < hiddenCount; i++) sizes.push(hiddenSize);
+    sizes.push(nOut);
+
+    weights = [];
+    for (let l = 0; l < sizes.length - 1; l++) {
+      const mat = [];
+      for (let i = 0; i < sizes[l]; i++) {
+        const row = [];
+        for (let j = 0; j < sizes[l + 1]; j++) row.push(1);
+        mat.push(row);
+      }
+      weights.push(mat);
+    }
+    selected = null;
+    updateSelectedUi();
+  }
+
+  function colorForWeight(v) {
+    const t = Math.min(1, Math.max(0, v / 3 * 0.5 + 0.5));
+    let r, g, b;
+    if (t < 0.5) {
+      const k = t / 0.5;
+      r = Math.round(59 + k * (255 - 59)); g = Math.round(130 + k * (255 - 130)); b = Math.round(246 + k * (255 - 246));
+    } else {
+      const k = (t - 0.5) / 0.5;
+      r = 255; g = Math.round(255 - k * (255 - 68)); b = Math.round(255 - k * (255 - 68));
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function draw() {
     const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
+    const columns = columnsFor(w, h);
 
-    const leftX = 90, rightX = w - 90, pad = 30;
-    const leftNodes = nodePositions(nIn, leftX, h, pad);
-    const rightNodes = nodePositions(nOut, rightX, h, pad);
-
-    ctx.strokeStyle = "rgba(29,78,216,0.25)";
-    ctx.lineWidth = 1;
-    for (const [lx, ly] of leftNodes) {
-      for (const [rx, ry] of rightNodes) {
-        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ry); ctx.stroke();
+    for (let l = 0; l < columns.length - 1; l++) {
+      for (let i = 0; i < columns[l].nodes.length; i++) {
+        for (let j = 0; j < columns[l + 1].nodes.length; j++) {
+          const [x1, y1] = columns[l].nodes[i];
+          const [x2, y2] = columns[l + 1].nodes[j];
+          const v = weights[l][i][j];
+          const isSel = selected && selected.layer === l && selected.from === i && selected.to === j;
+          ctx.strokeStyle = isSel ? "#1f2430" : colorForWeight(v);
+          ctx.lineWidth = isSel ? 3 : Math.min(4, 0.6 + Math.abs(v));
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
       }
     }
 
-    leftNodes.forEach(([x, y], i) => {
-      ctx.fillStyle = "#1f2430";
-      ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "11px sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("x" + (i + 1), x, y);
-    });
-    rightNodes.forEach(([x, y], i) => {
-      ctx.fillStyle = "#1f2430";
-      ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.font = "11px sans-serif";
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("h" + (i + 1), x, y);
+    columns.forEach((col, l) => {
+      col.nodes.forEach(([x, y], i) => {
+        ctx.fillStyle = "#1f2430";
+        ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(layerLabel(l) + (i + 1), x, y);
+      });
     });
 
-    const weights = nIn * nOut;
-    const biases = nOut;
-    statsEl.innerHTML = `weights = n_in &times; n_out = ${nIn} &times; ${nOut} = ${weights} &nbsp;|&nbsp; biases = n_out = ${biases} &nbsp;|&nbsp; total parameters = ${weights + biases}`;
+    let totalParams = 0;
+    const breakdown = [];
+    for (let l = 0; l < sizes.length - 1; l++) {
+      const wCount = sizes[l] * sizes[l + 1];
+      const bCount = sizes[l + 1];
+      totalParams += wCount + bCount;
+      breakdown.push(`${sizes[l]}&times;${sizes[l + 1]}+${sizes[l + 1]}`);
+    }
+    statsEl.innerHTML = `layer sizes: ${sizes.join(" &rarr; ")} &nbsp;|&nbsp; parameters per layer: ${breakdown.join(" + ")} &nbsp;|&nbsp; total = ${totalParams}`;
   }
 
-  ninInput.addEventListener("input", draw);
-  noutInput.addEventListener("input", draw);
+  function updateSelectedUi() {
+    if (selected) {
+      const v = weights[selected.layer][selected.from][selected.to];
+      selectedLabel.textContent = `Selected: ${layerLabel(selected.layer)}${selected.from + 1} -> ${layerLabel(selected.layer + 1)}${selected.to + 1}`;
+      weightInput.disabled = false;
+      weightInput.value = v;
+    } else {
+      selectedLabel.textContent = "Click an edge to edit its weight.";
+      weightInput.disabled = true;
+      weightInput.value = "";
+    }
+  }
+
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t * dx, projY = y1 + t * dy;
+    return Math.hypot(px - projX, py - projY);
+  }
+
+  function nearestEdge(px, py) {
+    const columns = columnsFor(canvas.width, canvas.height);
+    let best = null, bestDist = 10;
+    for (let l = 0; l < columns.length - 1; l++) {
+      for (let i = 0; i < columns[l].nodes.length; i++) {
+        for (let j = 0; j < columns[l + 1].nodes.length; j++) {
+          const [x1, y1] = columns[l].nodes[i];
+          const [x2, y2] = columns[l + 1].nodes[j];
+          const d = distToSegment(px, py, x1, y1, x2, y2);
+          if (d < bestDist) { bestDist = d; best = { layer: l, from: i, to: j }; }
+        }
+      }
+    }
+    return best;
+  }
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    selected = nearestEdge(px, py);
+    updateSelectedUi();
+    draw();
+  });
+
+  weightInput.addEventListener("input", () => {
+    if (!selected) return;
+    const v = parseFloat(weightInput.value);
+    weights[selected.layer][selected.from][selected.to] = isNaN(v) ? 0 : v;
+    draw();
+  });
+
+  [ninInput, noutInput, hiddenSizeInput].forEach((el) => el.addEventListener("input", () => { rebuild(); draw(); }));
+  hiddenCountSelect.addEventListener("change", () => { rebuild(); draw(); });
+
+  rebuild();
   draw();
 })();
 </script>
