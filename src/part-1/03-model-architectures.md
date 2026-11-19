@@ -19,19 +19,17 @@ Before opening up a full neural network, it helps to see this formula at work in
 
 Edit the points below and watch $w$, $b$ and the mean squared error update live.
 
-<div id="lr-widget" style="border:1px solid #d9dde5;border-radius:8px;padding:1rem;margin:1.25rem 0;max-width:720px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;">
-<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
+<div id="lr-widget" class="aisafety-widget">
+<div class="aisw-controls">
 <button type="button" data-lr-preset="clean">Clean linear trend</button>
 <button type="button" data-lr-preset="outlier">With an outlier</button>
 <button type="button" data-lr-preset="curved">Curved data</button>
 <button type="button" data-lr-preset="clear">Clear points</button>
-<label style="margin-left:.5rem;display:flex;align-items:center;gap:.3rem;">
-<input type="checkbox" id="lr-residuals"> show residuals
-</label>
+<label><input type="checkbox" id="lr-residuals"> show residuals</label>
 </div>
-<canvas id="lr-canvas" width="680" height="380" style="width:100%;height:auto;border:1px solid #d9dde5;border-radius:6px;cursor:crosshair;touch-action:none;"></canvas>
-<p style="font-size:.9rem;color:#5b6475;margin:.5rem 0 0;">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
-<div id="lr-stats" style="margin-top:.5rem;font-size:.95rem;line-height:1.6;"></div>
+<canvas id="lr-canvas" width="680" height="380"></canvas>
+<p class="aisw-hint">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
+<div id="lr-stats" class="aisw-stats"></div>
 </div>
 
 <script>
@@ -218,6 +216,162 @@ $$
 
 You can think of a neuron as a tiny calculator that makes a small decision, such as "does this part of the image look like an edge?".
 
+<div id="neuron-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>w1 <input type="range" id="neuron-w1" min="-3" max="3" step="0.1" value="1"> <span id="neuron-w1-val">1.0</span></label>
+<label>w2 <input type="range" id="neuron-w2" min="-3" max="3" step="0.1" value="-1"> <span id="neuron-w2-val">-1.0</span></label>
+<label>b <input type="range" id="neuron-b" min="-5" max="5" step="0.1" value="0"> <span id="neuron-b-val">0.0</span></label>
+<label>activation <select id="neuron-phi"><option value="none">none</option><option value="relu">ReLU</option><option value="sigmoid" selected>Sigmoid</option><option value="tanh">Tanh</option></select></label>
+</div>
+<canvas id="neuron-canvas" width="420" height="420"></canvas>
+<p class="aisw-hint">Click anywhere on the plot to probe a point (x1, x2) and read z and y. The dark line is the decision boundary z = 0, where the sign of the pre-activation flips.</p>
+<div id="neuron-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("neuron-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("neuron-stats");
+  const w1Input = document.getElementById("neuron-w1");
+  const w2Input = document.getElementById("neuron-w2");
+  const bInput = document.getElementById("neuron-b");
+  const phiSelect = document.getElementById("neuron-phi");
+  const w1Val = document.getElementById("neuron-w1-val");
+  const w2Val = document.getElementById("neuron-w2-val");
+  const bVal = document.getElementById("neuron-b-val");
+
+  const xMin = -5, xMax = 5, yMin = -5, yMax = 5;
+  const pad = 30;
+  const cells = 50;
+  let probe = null;
+
+  function phi(name, z) {
+    switch (name) {
+      case "relu": return Math.max(0, z);
+      case "sigmoid": return 1 / (1 + Math.exp(-z));
+      case "tanh": return Math.tanh(z);
+      default: return z;
+    }
+  }
+
+  function rangeFor(name) {
+    switch (name) {
+      case "relu": return [0, 5];
+      case "sigmoid": return [0, 1];
+      case "tanh": return [-1, 1];
+      default: return [-5, 5];
+    }
+  }
+
+  function toPx(x, y) {
+    const w = canvas.width, h = canvas.height;
+    return [
+      pad + (x - xMin) / (xMax - xMin) * (w - 2 * pad),
+      h - pad - (y - yMin) / (yMax - yMin) * (h - 2 * pad),
+    ];
+  }
+  function toData(px, py) {
+    const w = canvas.width, h = canvas.height;
+    return [
+      xMin + (px - pad) / (w - 2 * pad) * (xMax - xMin),
+      yMin + (h - pad - py) / (h - 2 * pad) * (yMax - yMin),
+    ];
+  }
+
+  function colorFor(t) {
+    t = Math.min(1, Math.max(0, t));
+    let r, g, b;
+    if (t < 0.5) {
+      const k = t / 0.5;
+      r = Math.round(59 + k * (255 - 59));
+      g = Math.round(130 + k * (255 - 130));
+      b = Math.round(246 + k * (255 - 246));
+    } else {
+      const k = (t - 0.5) / 0.5;
+      r = 255;
+      g = Math.round(255 - k * (255 - 68));
+      b = Math.round(255 - k * (255 - 68));
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function draw() {
+    const w1 = parseFloat(w1Input.value);
+    const w2 = parseFloat(w2Input.value);
+    const b = parseFloat(bInput.value);
+    const phiName = phiSelect.value;
+    w1Val.textContent = w1.toFixed(1);
+    w2Val.textContent = w2.toFixed(1);
+    bVal.textContent = b.toFixed(1);
+
+    const [lo, hi] = rangeFor(phiName);
+    const w = canvas.width, h = canvas.height;
+    const cellW = (w - 2 * pad) / cells;
+    const cellH = (h - 2 * pad) / cells;
+
+    for (let i = 0; i < cells; i++) {
+      for (let j = 0; j < cells; j++) {
+        const x1 = xMin + (i + 0.5) / cells * (xMax - xMin);
+        const x2 = yMin + (j + 0.5) / cells * (yMax - yMin);
+        const z = w1 * x1 + w2 * x2 + b;
+        const y = phi(phiName, z);
+        const t = (y - lo) / (hi - lo);
+        ctx.fillStyle = colorFor(t);
+        const px = pad + i * cellW;
+        const py = h - pad - (j + 1) * cellH;
+        ctx.fillRect(px, py, cellW + 1, cellH + 1);
+      }
+    }
+
+    ctx.strokeStyle = "#1f2430";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+    ctx.strokeStyle = "#1f2430";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (Math.abs(w2) > 1e-6) {
+      const [x1a, y1a] = toPx(xMin, -(w1 * xMin + b) / w2);
+      const [x2a, y2a] = toPx(xMax, -(w1 * xMax + b) / w2);
+      ctx.moveTo(x1a, y1a); ctx.lineTo(x2a, y2a);
+    } else if (Math.abs(w1) > 1e-6) {
+      const xb = -b / w1;
+      const [x1a, y1a] = toPx(xb, yMin);
+      const [x2a, y2a] = toPx(xb, yMax);
+      ctx.moveTo(x1a, y1a); ctx.lineTo(x2a, y2a);
+    }
+    ctx.stroke();
+
+    let statsHtml = `w1 = ${w1.toFixed(1)}, w2 = ${w2.toFixed(1)}, b = ${b.toFixed(1)}, φ = ${phiName}`;
+    if (probe) {
+      const z = w1 * probe.x1 + w2 * probe.x2 + b;
+      const y = phi(phiName, z);
+      const [px, py] = toPx(probe.x1, probe.x2);
+      ctx.fillStyle = "#1f2430";
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+      statsHtml += `<br>probe: x1 = ${probe.x1.toFixed(2)}, x2 = ${probe.x2.toFixed(2)} &rarr; z = ${z.toFixed(2)}, y = φ(z) = ${y.toFixed(3)}`;
+    }
+    statsEl.innerHTML = statsHtml;
+  }
+
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const [x1, x2] = toData(px, py);
+    probe = { x1, x2 };
+    draw();
+  });
+
+  [w1Input, w2Input, bInput, phiSelect].forEach((el) => el.addEventListener("input", draw));
+  phiSelect.addEventListener("change", draw);
+
+  draw();
+})();
+</script>
+
 ### 3.2.2 Weights and biases
 
 **Weights** and **biases** are the "knobs" of the network. At the start of training they have arbitrary values and the network's answers are poor. Training is the process of turning all these knobs, little by little, until the answers become good. A modern network can have millions or billions of such knobs. Together they are called the model **parameters**, written $\theta$.
@@ -240,6 +394,84 @@ Such a layer has $n_{in} \times n_{out}$ weights and $n_{out}$ biases. For examp
 
 A network with many hidden layers is called a **deep** network, which is where the term *deep learning* comes from. Early layers tend to learn simple patterns, and later layers combine them into more complex ones.
 
+<div id="layer-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>n_in <input type="range" id="layer-nin" min="1" max="6" step="1" value="3"> <span id="layer-nin-val">3</span></label>
+<label>n_out <input type="range" id="layer-nout" min="1" max="6" step="1" value="4"> <span id="layer-nout-val">4</span></label>
+</div>
+<canvas id="layer-canvas" width="560" height="340"></canvas>
+<p class="aisw-hint">Every input node is connected to every output node — one weight per edge, plus one bias per output node.</p>
+<div id="layer-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("layer-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("layer-stats");
+  const ninInput = document.getElementById("layer-nin");
+  const noutInput = document.getElementById("layer-nout");
+  const ninVal = document.getElementById("layer-nin-val");
+  const noutVal = document.getElementById("layer-nout-val");
+
+  function nodePositions(n, x, h, pad) {
+    const positions = [];
+    for (let i = 0; i < n; i++) {
+      const y = n === 1 ? h / 2 : pad + (i / (n - 1)) * (h - 2 * pad);
+      positions.push([x, y]);
+    }
+    return positions;
+  }
+
+  function draw() {
+    const nIn = parseInt(ninInput.value, 10);
+    const nOut = parseInt(noutInput.value, 10);
+    ninVal.textContent = nIn;
+    noutVal.textContent = nOut;
+
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const leftX = 90, rightX = w - 90, pad = 30;
+    const leftNodes = nodePositions(nIn, leftX, h, pad);
+    const rightNodes = nodePositions(nOut, rightX, h, pad);
+
+    ctx.strokeStyle = "rgba(29,78,216,0.25)";
+    ctx.lineWidth = 1;
+    for (const [lx, ly] of leftNodes) {
+      for (const [rx, ry] of rightNodes) {
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ry); ctx.stroke();
+      }
+    }
+
+    leftNodes.forEach(([x, y], i) => {
+      ctx.fillStyle = "#1f2430";
+      ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("x" + (i + 1), x, y);
+    });
+    rightNodes.forEach(([x, y], i) => {
+      ctx.fillStyle = "#1f2430";
+      ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("h" + (i + 1), x, y);
+    });
+
+    const weights = nIn * nOut;
+    const biases = nOut;
+    statsEl.innerHTML = `weights = n_in &times; n_out = ${nIn} &times; ${nOut} = ${weights} &nbsp;|&nbsp; biases = n_out = ${biases} &nbsp;|&nbsp; total parameters = ${weights + biases}`;
+  }
+
+  ninInput.addEventListener("input", draw);
+  noutInput.addEventListener("input", draw);
+  draw();
+})();
+</script>
+
 ### 3.2.4 Activation functions
 
 An **activation function** is a small mathematical function applied to the output of each neuron.
@@ -256,6 +488,130 @@ An **activation function** is a small mathematical function applied to the outpu
 | **GELU / SiLU** | $x\,\Phi(x)$ / $x\,\sigma(x)$ | Smooth versions of ReLU. | Transformers and modern CNNs |
 
 > **The vanishing-gradient problem.** Sigmoid and tanh become almost flat for very large or very small inputs. In a flat region, the signal used to teach the network (the gradient, Section 3.3) is close to zero, so early layers of a deep network barely learn. ReLU-type functions do not flatten for positive values, which is one reason they dominate modern networks.
+
+<div id="act-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>function <select id="act-fn"><option value="relu">ReLU</option><option value="lrelu">Leaky ReLU</option><option value="sigmoid" selected>Sigmoid</option><option value="tanh">Tanh</option><option value="gelu">GELU</option></select></label>
+</div>
+<canvas id="act-canvas" width="560" height="340"></canvas>
+<p class="aisw-hint">Drag along the plot to probe a point x and read φ(x) (solid) and the numerically estimated slope φ'(x) (dashed). Watch the dashed line flatten near the tails for Sigmoid/Tanh but not for ReLU.</p>
+<div id="act-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("act-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("act-stats");
+  const fnSelect = document.getElementById("act-fn");
+
+  const xMin = -5, xMax = 5;
+  const pad = 36;
+  let probeX = 1.5;
+  let dragging = false;
+
+  function phi(name, x) {
+    switch (name) {
+      case "relu": return Math.max(0, x);
+      case "lrelu": return x >= 0 ? x : 0.01 * x;
+      case "sigmoid": return 1 / (1 + Math.exp(-x));
+      case "tanh": return Math.tanh(x);
+      case "gelu": {
+        const c = Math.sqrt(2 / Math.PI);
+        return 0.5 * x * (1 + Math.tanh(c * (x + 0.044715 * x ** 3)));
+      }
+      default: return x;
+    }
+  }
+
+  function derivative(name, x) {
+    const h = 1e-3;
+    return (phi(name, x + h) - phi(name, x - h)) / (2 * h);
+  }
+
+  function toPx(x, y, yMin, yMax, w, h) {
+    return [
+      pad + (x - xMin) / (xMax - xMin) * (w - 2 * pad),
+      h - pad - (y - yMin) / (yMax - yMin) * (h - 2 * pad),
+    ];
+  }
+
+  function draw() {
+    const name = fnSelect.value;
+    const w = canvas.width, hgt = canvas.height;
+    ctx.clearRect(0, 0, w, hgt);
+
+    const samples = [];
+    const derivs = [];
+    const n = 200;
+    for (let i = 0; i <= n; i++) {
+      const x = xMin + (i / n) * (xMax - xMin);
+      samples.push([x, phi(name, x)]);
+      derivs.push([x, derivative(name, x)]);
+    }
+    let yMin = Math.min(...samples.map((p) => p[1]), ...derivs.map((p) => p[1]));
+    let yMax = Math.max(...samples.map((p) => p[1]), ...derivs.map((p) => p[1]));
+    const margin = (yMax - yMin) * 0.1 || 0.5;
+    yMin -= margin; yMax += margin;
+
+    ctx.strokeStyle = "#d9dde5";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, w - 2 * pad, hgt - 2 * pad);
+    const [zx1, zy1] = toPx(xMin, 0, yMin, yMax, w, hgt);
+    const [zx2, zy2] = toPx(xMax, 0, yMin, yMax, w, hgt);
+    ctx.beginPath(); ctx.moveTo(zx1, zy1); ctx.lineTo(zx2, zy2); ctx.stroke();
+
+    ctx.strokeStyle = "#1d4ed8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    samples.forEach(([x, y], i) => {
+      const [px, py] = toPx(x, y, yMin, yMax, w, hgt);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+
+    ctx.strokeStyle = "#ef4444";
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    derivs.forEach(([x, y], i) => {
+      const [px, py] = toPx(x, y, yMin, yMax, w, hgt);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const [px, pyTop] = toPx(probeX, yMax, yMin, yMax, w, hgt);
+    const [, pyBot] = toPx(probeX, yMin, yMin, yMax, w, hgt);
+    ctx.strokeStyle = "#5b6475";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(px, pyTop); ctx.lineTo(px, pyBot); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const pVal = phi(name, probeX);
+    const dVal = derivative(name, probeX);
+    const [dotX, dotY] = toPx(probeX, pVal, yMin, yMax, w, hgt);
+    ctx.fillStyle = "#1f2430";
+    ctx.beginPath(); ctx.arc(dotX, dotY, 5, 0, 2 * Math.PI); ctx.fill();
+
+    statsEl.innerHTML = `x = ${probeX.toFixed(2)} &nbsp;|&nbsp; φ(x) = ${pVal.toFixed(3)} &nbsp;|&nbsp; φ'(x) &asymp; ${dVal.toFixed(3)}`;
+  }
+
+  function setProbeFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const x = xMin + (px - pad) / (canvas.width - 2 * pad) * (xMax - xMin);
+    probeX = Math.min(xMax, Math.max(xMin, x));
+    draw();
+  }
+
+  canvas.addEventListener("mousedown", (e) => { dragging = true; setProbeFromEvent(e); });
+  canvas.addEventListener("mousemove", (e) => { if (dragging) setProbeFromEvent(e); });
+  window.addEventListener("mouseup", () => { dragging = false; });
+  fnSelect.addEventListener("change", draw);
+
+  draw();
+})();
+</script>
 
 ### 3.2.5 Convolution and pooling
 
@@ -276,6 +632,227 @@ n_{out} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
 $$
 
 **Pooling** shrinks a feature map by keeping a summary of each small region — for example, **max pooling** keeps only the largest value in each $2\times2$ block. This reduces the amount of computation and makes the network less sensitive to tiny shifts of an object in the image.
+
+<div id="conv-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>kernel <select id="conv-preset"><option value="vert">Vertical edge</option><option value="horiz">Horizontal edge</option><option value="blur">Blur</option><option value="sharpen">Sharpen</option><option value="identity">Identity</option></select></label>
+<label>stride <select id="conv-stride"><option value="1" selected>1</option><option value="2">2</option></select></label>
+<label>padding <select id="conv-pad"><option value="0" selected>0</option><option value="1">1</option></select></label>
+<button type="button" id="conv-step">Step</button>
+<button type="button" id="conv-auto">Auto-run</button>
+<button type="button" id="conv-reset">Reset</button>
+</div>
+<div style="display:flex;gap:1.25rem;flex-wrap:wrap;align-items:flex-start;">
+<div id="conv-kernel-grid" style="display:inline-grid;grid-template-columns:repeat(3,2.6rem);gap:2px;"></div>
+<canvas id="conv-input-canvas" width="280" height="280" style="max-width:280px;"></canvas>
+<canvas id="conv-output-canvas" width="200" height="200" style="max-width:200px;"></canvas>
+</div>
+<p class="aisw-hint">Click a cell in the input grid to cycle its intensity (0-3). Edit the kernel numbers directly, then use Step/Auto-run to slide the kernel across the input and build the output feature map.</p>
+<div id="conv-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const n = 8;
+  const kernelGridEl = document.getElementById("conv-kernel-grid");
+  const inputCanvas = document.getElementById("conv-input-canvas");
+  const outputCanvas = document.getElementById("conv-output-canvas");
+  const inCtx = inputCanvas.getContext("2d");
+  const outCtx = outputCanvas.getContext("2d");
+  const statsEl = document.getElementById("conv-stats");
+  const presetSelect = document.getElementById("conv-preset");
+  const strideSelect = document.getElementById("conv-stride");
+  const padSelect = document.getElementById("conv-pad");
+  const stepBtn = document.getElementById("conv-step");
+  const autoBtn = document.getElementById("conv-auto");
+  const resetBtn = document.getElementById("conv-reset");
+
+  const presets = {
+    vert: [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]],
+    horiz: [[-1, -1, -1], [0, 0, 0], [1, 1, 1]],
+    blur: [[1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9]],
+    sharpen: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]],
+    identity: [[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+  };
+
+  let kernel = presets.vert.map((row) => row.slice());
+  let grid = [];
+  for (let r = 0; r < n; r++) {
+    const row = [];
+    for (let c = 0; c < n; c++) row.push(c < n / 2 ? 0 : 3);
+    grid.push(row);
+  }
+
+  let stepIndex = -1;
+  let autoTimer = null;
+  let outputCache = [];
+
+  function buildKernelInputs() {
+    kernelGridEl.innerHTML = "";
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const inp = document.createElement("input");
+        inp.type = "number";
+        inp.step = "0.1";
+        inp.value = Math.round(kernel[i][j] * 100) / 100;
+        inp.style.width = "100%";
+        inp.addEventListener("input", () => {
+          kernel[i][j] = parseFloat(inp.value) || 0;
+          resetProgress();
+          draw();
+        });
+        kernelGridEl.appendChild(inp);
+      }
+    }
+  }
+
+  function dims() {
+    const s = parseInt(strideSelect.value, 10);
+    const p = parseInt(padSelect.value, 10);
+    const k = 3;
+    const nOut = Math.floor((n + 2 * p - k) / s) + 1;
+    return { s, p, k, nOut };
+  }
+
+  function valueAt(r, c) {
+    if (r < 0 || r >= n || c < 0 || c >= n) return 0;
+    return grid[r][c];
+  }
+
+  function windowSum(topRow, topCol) {
+    let sum = 0;
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        sum += valueAt(topRow + i, topCol + j) * kernel[i][j];
+      }
+    }
+    return sum;
+  }
+
+  function resetProgress() {
+    stepIndex = -1;
+    outputCache = [];
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = "Auto-run"; }
+  }
+
+  function cellColorInput(v) {
+    const t = v / 3;
+    const g = Math.round(255 - t * 255);
+    return `rgb(${g},${g},${g})`;
+  }
+
+  function diverging(v, maxAbs) {
+    const t = Math.min(1, Math.max(0, (v / (maxAbs || 1)) * 0.5 + 0.5));
+    let r, g, b;
+    if (t < 0.5) {
+      const k = t / 0.5;
+      r = Math.round(59 + k * (255 - 59)); g = Math.round(130 + k * (255 - 130)); b = Math.round(246 + k * (255 - 246));
+    } else {
+      const k = (t - 0.5) / 0.5;
+      r = 255; g = Math.round(255 - k * (255 - 68)); b = Math.round(255 - k * (255 - 68));
+    }
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function draw() {
+    const { s, p, k, nOut } = dims();
+    const cell = inputCanvas.width / n;
+    inCtx.clearRect(0, 0, inputCanvas.width, inputCanvas.height);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        inCtx.fillStyle = cellColorInput(grid[r][c]);
+        inCtx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
+      }
+    }
+
+    if (stepIndex >= 0 && stepIndex < nOut * nOut) {
+      const row = Math.floor(stepIndex / nOut);
+      const col = stepIndex % nOut;
+      const topRow = row * s - p;
+      const topCol = col * s - p;
+      inCtx.strokeStyle = "#1d4ed8";
+      inCtx.lineWidth = 3;
+      inCtx.strokeRect(topCol * cell, topRow * cell, k * cell, k * cell);
+    }
+
+    const outCell = outputCanvas.width / nOut;
+    outCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+    const maxAbs = Math.max(1, ...outputCache.map((v) => Math.abs(v)));
+    for (let idx = 0; idx < outputCache.length; idx++) {
+      const row = Math.floor(idx / nOut);
+      const col = idx % nOut;
+      outCtx.fillStyle = diverging(outputCache[idx], maxAbs);
+      outCtx.fillRect(col * outCell, row * outCell, outCell - 1, outCell - 1);
+    }
+    if (stepIndex >= 0 && stepIndex < nOut * nOut) {
+      const row = Math.floor(stepIndex / nOut);
+      const col = stepIndex % nOut;
+      outCtx.strokeStyle = "#1d4ed8";
+      outCtx.lineWidth = 2;
+      outCtx.strokeRect(col * outCell, row * outCell, outCell, outCell);
+    }
+
+    let statsHtml = `n = ${n}, k = ${k}, stride = ${s}, padding = ${p} &rarr; n_out = floor((${n} + 2&times;${p} - ${k}) / ${s}) + 1 = ${nOut}`;
+    if (stepIndex >= 0 && stepIndex < nOut * nOut) {
+      statsHtml += `<br>position ${stepIndex + 1} / ${nOut * nOut}: &sum; window &middot; kernel = ${outputCache[stepIndex].toFixed(2)}`;
+    } else if (stepIndex >= nOut * nOut) {
+      statsHtml += `<br>done — ${nOut * nOut} positions computed.`;
+    }
+    statsEl.innerHTML = statsHtml;
+  }
+
+  function step() {
+    const { s, p, nOut } = dims();
+    const total = nOut * nOut;
+    if (stepIndex >= total - 1) { stepIndex = total; draw(); return; }
+    stepIndex++;
+    const row = Math.floor(stepIndex / nOut);
+    const col = stepIndex % nOut;
+    outputCache[stepIndex] = windowSum(row * s - p, col * s - p);
+    draw();
+  }
+
+  stepBtn.addEventListener("click", () => { if (!autoTimer) step(); });
+  autoBtn.addEventListener("click", () => {
+    if (autoTimer) {
+      clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = "Auto-run";
+    } else {
+      autoBtn.textContent = "Pause";
+      autoTimer = setInterval(() => {
+        const { nOut } = dims();
+        if (stepIndex >= nOut * nOut - 1) { clearInterval(autoTimer); autoTimer = null; autoBtn.textContent = "Auto-run"; return; }
+        step();
+      }, 400);
+    }
+  });
+  resetBtn.addEventListener("click", () => { resetProgress(); draw(); });
+
+  inputCanvas.addEventListener("click", (e) => {
+    const rect = inputCanvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (inputCanvas.width / rect.width);
+    const py = (e.clientY - rect.top) * (inputCanvas.height / rect.height);
+    const cell = inputCanvas.width / n;
+    const c = Math.floor(px / cell), r = Math.floor(py / cell);
+    if (r >= 0 && r < n && c >= 0 && c < n) {
+      grid[r][c] = (grid[r][c] + 1) % 4;
+      resetProgress();
+      draw();
+    }
+  });
+
+  presetSelect.addEventListener("change", () => {
+    kernel = presets[presetSelect.value].map((row) => row.slice());
+    buildKernelInputs();
+    resetProgress();
+    draw();
+  });
+  strideSelect.addEventListener("change", () => { resetProgress(); draw(); });
+  padSelect.addEventListener("change", () => { resetProgress(); draw(); });
+
+  buildKernelInputs();
+  draw();
+})();
+</script>
 
 ### 3.2.6 Normalisation layers
 
@@ -388,6 +965,156 @@ After a single update the prediction moved from 1 to 3, which is exactly the tar
 
 This is exactly what `loss.backward()` does automatically in PyTorch for networks with millions of weights: apply the chain rule layer by layer, rather than working it out by hand as above.
 
+<div id="bp-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>w <input type="range" id="bp-w" min="-2" max="3" step="0.05" value="0.5"> <span id="bp-w-val">0.50</span></label>
+<label>b <input type="range" id="bp-b" min="-3" max="3" step="0.05" value="0"> <span id="bp-b-val">0.00</span></label>
+<label>η <input type="range" id="bp-eta" min="0.01" max="0.3" step="0.01" value="0.1"> <span id="bp-eta-val">0.10</span></label>
+<button type="button" id="bp-step">Step</button>
+<button type="button" id="bp-reset">Reset</button>
+</div>
+<canvas id="bp-canvas" width="420" height="380"></canvas>
+<p class="aisw-hint">x = 2, y = 3 — the same worked example as the text. Drag w/b to feel the loss surface, or click Step to apply one gradient-descent update and watch the dot move downhill.</p>
+<div id="bp-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("bp-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("bp-stats");
+  const wInput = document.getElementById("bp-w");
+  const bInput = document.getElementById("bp-b");
+  const etaInput = document.getElementById("bp-eta");
+  const wVal = document.getElementById("bp-w-val");
+  const bVal = document.getElementById("bp-b-val");
+  const etaVal = document.getElementById("bp-eta-val");
+  const stepBtn = document.getElementById("bp-step");
+  const resetBtn = document.getElementById("bp-reset");
+
+  const x = 2, y = 3;
+  const wMin = -2, wMax = 3, bMin = -3, bMax = 3;
+  const pad = 36;
+  let trail = [];
+
+  function loss(w, b) {
+    const yhat = w * x + b;
+    return (yhat - y) ** 2;
+  }
+  function grad(w, b) {
+    const yhat = w * x + b;
+    const d = 2 * (yhat - y);
+    return [d * x, d];
+  }
+
+  function toPx(w, b) {
+    const W = canvas.width, H = canvas.height;
+    return [
+      pad + (w - wMin) / (wMax - wMin) * (W - 2 * pad),
+      H - pad - (b - bMin) / (bMax - bMin) * (H - 2 * pad),
+    ];
+  }
+
+  function colorFor(t) {
+    t = Math.min(1, Math.max(0, t));
+    const r = Math.round(255 * t);
+    const g = Math.round(255 * (1 - t) * 0.9);
+    const bch = Math.round(255 * (1 - t));
+    return `rgb(${r},${g},${bch})`;
+  }
+
+  function draw() {
+    const w = parseFloat(wInput.value);
+    const b = parseFloat(bInput.value);
+    const eta = parseFloat(etaInput.value);
+    wVal.textContent = w.toFixed(2);
+    bVal.textContent = b.toFixed(2);
+    etaVal.textContent = eta.toFixed(2);
+
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const cells = 40;
+    let maxL = 0;
+    const losses = [];
+    for (let i = 0; i < cells; i++) {
+      for (let j = 0; j < cells; j++) {
+        const ww = wMin + (i + 0.5) / cells * (wMax - wMin);
+        const bb = bMin + (j + 0.5) / cells * (bMax - bMin);
+        const l = loss(ww, bb);
+        losses.push(l);
+        if (l > maxL) maxL = l;
+      }
+    }
+    const cellW = (W - 2 * pad) / cells;
+    const cellH = (H - 2 * pad) / cells;
+    let idx = 0;
+    for (let i = 0; i < cells; i++) {
+      for (let j = 0; j < cells; j++) {
+        const l = losses[idx++];
+        const t = Math.sqrt(Math.min(1, l / (maxL || 1)));
+        ctx.fillStyle = colorFor(t);
+        const px = pad + i * cellW;
+        const py = H - pad - (j + 1) * cellH;
+        ctx.fillRect(px, py, cellW + 1, cellH + 1);
+      }
+    }
+
+    ctx.strokeStyle = "#1f2430";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
+
+    if (trail.length > 1) {
+      ctx.strokeStyle = "#1f2430";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      trail.forEach(([tw, tb], i) => {
+        const [px, py] = toPx(tw, tb);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+
+    const [px, py] = toPx(w, b);
+    const [gw, gb] = grad(w, b);
+    const gnorm = Math.hypot(gw, gb) || 1;
+    const arrowLen = 35;
+    const ax = px - (gw / gnorm) * arrowLen;
+    const ay = py + (gb / gnorm) * arrowLen;
+    ctx.strokeStyle = "#1d4ed8";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay); ctx.stroke();
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 2; ctx.stroke();
+
+    const yhat = w * x + b;
+    const l = loss(w, b);
+    statsEl.innerHTML = `ŷ = wx + b = ${yhat.toFixed(2)} &nbsp;|&nbsp; L = (ŷ-y)² = ${l.toFixed(2)} &nbsp;|&nbsp; ∂L/∂w = ${gw.toFixed(2)} &nbsp;|&nbsp; ∂L/∂b = ${gb.toFixed(2)}`;
+  }
+
+  function applyStep() {
+    const w = parseFloat(wInput.value);
+    const b = parseFloat(bInput.value);
+    const eta = parseFloat(etaInput.value);
+    trail.push([w, b]);
+    const [gw, gb] = grad(w, b);
+    wInput.value = Math.min(wMax, Math.max(wMin, w - eta * gw));
+    bInput.value = Math.min(bMax, Math.max(bMin, b - eta * gb));
+    draw();
+  }
+
+  stepBtn.addEventListener("click", applyStep);
+  resetBtn.addEventListener("click", () => {
+    wInput.value = 0.5; bInput.value = 0; trail = []; draw();
+  });
+  [wInput, bInput, etaInput].forEach((el) => el.addEventListener("input", () => { trail = []; draw(); }));
+
+  draw();
+})();
+</script>
+
 ### 3.3.4 Gradient descent and the learning rate
 
 **Gradient descent** repeats the update step: move each parameter a small step *against* its gradient.
@@ -401,6 +1128,140 @@ The **learning rate** $\eta$ is the size of the step:
 - **Too large:** the steps overshoot the valley and the loss bounces around or even grows.
 - **Too small:** learning is very slow and may get stuck.
 - **Just right:** the loss decreases steadily.
+
+<div id="eta-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>η <input type="range" id="eta-eta" min="0.01" max="1.3" step="0.01" value="0.2"> <span id="eta-eta-val">0.20</span></label>
+<button type="button" id="eta-step">Step</button>
+<button type="button" id="eta-play">Play</button>
+<button type="button" id="eta-reset">Reset</button>
+</div>
+<canvas id="eta-canvas" width="560" height="320"></canvas>
+<p class="aisw-hint">A toy loss L(θ) = (θ-3)² + 0.5, starting far from the minimum. Try η around 0.1-0.3 (steady), then push past η = 1.0 to watch it diverge, and down near η = 0.02 to watch it crawl.</p>
+<div id="eta-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("eta-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("eta-stats");
+  const etaInput = document.getElementById("eta-eta");
+  const etaVal = document.getElementById("eta-eta-val");
+  const stepBtn = document.getElementById("eta-step");
+  const playBtn = document.getElementById("eta-play");
+  const resetBtn = document.getElementById("eta-reset");
+
+  const thetaMin = -2, thetaMax = 8;
+  const pad = 36;
+  const minimum = 3;
+  let theta = 8;
+  let history = [theta];
+  let timer = null;
+
+  function L(t) { return (t - minimum) ** 2 + 0.5; }
+  function gradL(t) { return 2 * (t - minimum); }
+
+  function yRange() {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i <= 100; i++) {
+      const t = thetaMin + (i / 100) * (thetaMax - thetaMin);
+      const v = L(t);
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    history.forEach((t) => { const v = L(t); if (v > hi) hi = v; });
+    return [lo, hi * 1.05];
+  }
+
+  function toPx(t, l, yMin, yMax, w, h) {
+    return [
+      pad + (t - thetaMin) / (thetaMax - thetaMin) * (w - 2 * pad),
+      h - pad - (l - yMin) / (yMax - yMin) * (h - 2 * pad),
+    ];
+  }
+
+  function classify(eta) {
+    const r = Math.abs(1 - 2 * eta);
+    if (r >= 1) return "diverging";
+    if (r >= 0.9) return "oscillating, barely bounded";
+    if (r <= 0.3) return "converging quickly";
+    return "converging steadily";
+  }
+
+  function draw() {
+    const eta = parseFloat(etaInput.value);
+    etaVal.textContent = eta.toFixed(2);
+
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const [yMin, yMax] = yRange();
+
+    ctx.strokeStyle = "#d9dde5";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+    ctx.strokeStyle = "#1d4ed8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 100; i++) {
+      const t = thetaMin + (i / 100) * (thetaMax - thetaMin);
+      const [px, py] = toPx(t, L(t), yMin, yMax, w, h);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    if (history.length > 1) {
+      ctx.strokeStyle = "rgba(31,36,48,0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      history.forEach((t, i) => {
+        const [px, py] = toPx(t, L(t), yMin, yMax, w, h);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+    }
+
+    const [px, py] = toPx(theta, L(theta), yMin, yMax, w, h);
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
+
+    statsEl.innerHTML = `θ = ${theta.toFixed(3)} &nbsp;|&nbsp; L(θ) = ${L(theta).toFixed(3)} &nbsp;|&nbsp; step ${history.length - 1} &nbsp;|&nbsp; ${classify(eta)}`;
+  }
+
+  function step() {
+    const eta = parseFloat(etaInput.value);
+    theta = theta - eta * gradL(theta);
+    theta = Math.min(1e6, Math.max(-1e6, theta));
+    history.push(theta);
+    if (history.length > 60) history.shift();
+    draw();
+  }
+
+  stepBtn.addEventListener("click", step);
+  playBtn.addEventListener("click", () => {
+    if (timer) {
+      clearInterval(timer); timer = null; playBtn.textContent = "Play";
+    } else {
+      playBtn.textContent = "Pause";
+      timer = setInterval(() => {
+        step();
+        if (Math.abs(theta - minimum) > 1000) { clearInterval(timer); timer = null; playBtn.textContent = "Play"; }
+      }, 350);
+    }
+  });
+  resetBtn.addEventListener("click", () => {
+    if (timer) { clearInterval(timer); timer = null; playBtn.textContent = "Play"; }
+    theta = 8; history = [theta]; draw();
+  });
+  etaInput.addEventListener("input", () => {
+    if (timer) { clearInterval(timer); timer = null; playBtn.textContent = "Play"; }
+    theta = 8; history = [theta]; draw();
+  });
+
+  draw();
+})();
+</script>
 
 ### 3.3.5 Mini-batches and Stochastic Gradient Descent (SGD)
 

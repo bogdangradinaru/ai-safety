@@ -78,3 +78,4 @@ format:
     code-fold: false
     code-copy: true
     page-navigation: true
+    css: styles/widgets.css
