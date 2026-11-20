@@ -1043,9 +1043,14 @@ Training is a repeated four-step loop:
 
 This loop runs thousands or millions of times until the error stops improving.
 
+> **Running example.** To make the loop concrete, Sections 3.3.1–3.3.4 follow one tiny neuron through every stage with real numbers. The neuron has no activation function, to keep the arithmetic simple: $\hat{y} = wx + b$. It sees a single training example with input $x=2$ and true answer $y=3$. Its weights start at $w=0.5$ and $b=0$, the loss is $\mathcal{L} = (\hat{y}-y)^2$, and the learning rate is $\eta=0.1$. The stepper in Section 3.3.3 lets you replay the whole loop on these numbers.
+
 ### 3.3.1 Forward propagation
 
 In **forward propagation**, data enters the input layer and flows through the layers one by one, each applying its weights and activation function, until the output layer produces a prediction. This is the network "making a guess". Forward propagation is also exactly what happens when a trained network is used (this is called **inference**).
+
+> **Running example — stage 1.** Our neuron has a single layer and no activation, so the forward pass is one line:
+> $\hat{y} = w x + b = 0.5 \times 2 + 0 = 1$. The network guesses 1, but the true answer is 3.
 
 ### 3.3.2 Loss functions
 
@@ -1063,6 +1068,139 @@ A **loss function** $\mathcal{L}$ is a score that tells us how wrong a predictio
 
 Focal loss is particularly useful in driving data, where "background" vastly outnumbers objects of interest.
 
+> **Running example — stage 2.** Our neuron predicts a number, so we use MSE: $\mathcal{L} = (\hat{y}-y)^2 = (1-3)^2 = 4$. The loss is the single number that the rest of the loop tries to push towards zero.
+
+The widget below compares three of the "predicting a number" losses for a true answer of $y=3$. Drag the prediction $\hat{y}$ (or click on the plot) and watch how differently each loss reacts as the prediction moves further from the target.
+
+<div id="loss-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>ŷ <input type="range" id="loss-yhat" min="-2" max="8" step="0.05" value="1"> <span id="loss-yhat-val">1.00</span></label>
+<label>Highlight
+<select id="loss-sel">
+<option value="all">all three</option>
+<option value="mse">MSE</option>
+<option value="l1">L1</option>
+<option value="huber">Huber</option>
+</select>
+</label>
+<button type="button" id="loss-example">Running example (ŷ = 1)</button>
+</div>
+<canvas id="loss-canvas" width="560" height="320"></canvas>
+<p class="aisw-hint">True answer y = 3 (dashed line). MSE = e², L1 = |e|, Huber (δ = 1) = ½e² for |e| ≤ 1 and |e| − ½ beyond, where e = ŷ − y. Near the target all three are small; far from it MSE explodes while L1 and Huber grow only linearly — which is why MSE "penalises large errors strongly" and L1/Huber are less sensitive to outliers.</p>
+<div id="loss-stats" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById("loss-canvas");
+  const ctx = canvas.getContext("2d");
+  const statsEl = document.getElementById("loss-stats");
+  const yhatInput = document.getElementById("loss-yhat");
+  const yhatVal = document.getElementById("loss-yhat-val");
+  const selInput = document.getElementById("loss-sel");
+  const exampleBtn = document.getElementById("loss-example");
+
+  const y = 3, delta = 1;
+  const xMin = -2, xMax = 8, lMax = 26;
+  const pad = 36;
+  const fns = {
+    mse: (e) => e * e,
+    l1: (e) => Math.abs(e),
+    huber: (e) => (Math.abs(e) <= delta ? 0.5 * e * e : delta * (Math.abs(e) - 0.5 * delta)),
+  };
+  const names = { mse: "MSE", l1: "L1", huber: "Huber" };
+  const colors = { mse: "#1d4ed8", l1: "#ef4444", huber: "#16a34a" };
+
+  function toPx(v, l) {
+    const W = canvas.width, H = canvas.height;
+    return [
+      pad + (v - xMin) / (xMax - xMin) * (W - 2 * pad),
+      H - pad - Math.min(l, lMax) / lMax * (H - 2 * pad),
+    ];
+  }
+
+  function draw() {
+    const yhat = parseFloat(yhatInput.value);
+    const sel = selInput.value;
+    yhatVal.textContent = yhat.toFixed(2);
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = "#d9dde5";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
+    ctx.fillStyle = "#5b6475";
+    ctx.font = "12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    for (let v = xMin; v <= xMax; v += 2) {
+      const [px] = toPx(v, 0);
+      ctx.fillText(String(v), px, H - pad + 16);
+    }
+    ctx.textAlign = "right";
+    for (let l = 0; l <= 25; l += 5) {
+      const [, py] = toPx(xMin, l);
+      ctx.fillText(String(l), pad - 6, py + 4);
+    }
+    ctx.textAlign = "center";
+    ctx.fillText("prediction ŷ", W / 2, H - 6);
+    ctx.save();
+    ctx.translate(12, H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("loss", 0, 0);
+    ctx.restore();
+
+    const [tx] = toPx(y, 0);
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = "#5b6475";
+    ctx.beginPath(); ctx.moveTo(tx, pad); ctx.lineTo(tx, H - pad); ctx.stroke();
+    ctx.setLineDash([]);
+
+    Object.keys(fns).forEach((key) => {
+      const on = sel === "all" || sel === key;
+      ctx.globalAlpha = on ? 1 : 0.25;
+      ctx.strokeStyle = colors[key];
+      ctx.lineWidth = on ? 3 : 1.5;
+      ctx.beginPath();
+      for (let i = 0; i <= 200; i++) {
+        const v = xMin + (i / 200) * (xMax - xMin);
+        const [px, py] = toPx(v, fns[key](v - y));
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      if (on) {
+        const [px, py] = toPx(yhat, fns[key](yhat - y));
+        ctx.fillStyle = colors[key];
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    });
+
+    const e = yhat - y;
+    statsEl.innerHTML = `error e = ŷ − y = ${e.toFixed(2).replace("-", "−")} &nbsp;|&nbsp; ` +
+      Object.keys(fns).map((k) => `<span style="color:${colors[k]}">${names[k]} = ${fns[k](e).toFixed(2)}</span>`).join(" &nbsp;|&nbsp; ");
+  }
+
+  function setFromPointer(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) * (canvas.width / rect.width);
+    const v = xMin + (px - pad) / (canvas.width - 2 * pad) * (xMax - xMin);
+    yhatInput.value = Math.min(xMax, Math.max(xMin, v));
+    draw();
+  }
+  let dragging = false;
+  canvas.addEventListener("pointerdown", (ev) => { dragging = true; canvas.setPointerCapture(ev.pointerId); setFromPointer(ev); });
+  canvas.addEventListener("pointermove", (ev) => { if (dragging) setFromPointer(ev); });
+  canvas.addEventListener("pointerup", () => { dragging = false; });
+
+  yhatInput.addEventListener("input", draw);
+  selInput.addEventListener("change", draw);
+  exampleBtn.addEventListener("click", () => { yhatInput.value = 1; draw(); });
+
+  draw();
+})();
+</script>
+
 ### 3.3.3 Gradients and backpropagation
 
 The **gradient** of the loss with respect to a weight, $\dfrac{\partial \mathcal{L}}{\partial w}$, tells us how the loss changes if that weight is increased slightly. Imagine standing on a hill in thick fog: you cannot see the valley, but you can feel which way the ground slopes. The gradient is that slope, and moving *against* it takes you downhill, towards a lower loss.
@@ -1075,34 +1213,31 @@ $$
 
 Deep-learning frameworks such as PyTorch compute this automatically (**automatic differentiation**), so engineers rarely write it by hand.
 
-#### A tiny worked example
-
-Take a single neuron without activation, $\hat{y} = wx + b$, with input $x=2$, true answer $y=3$, and starting values $w=0.5$, $b=0$. The loss is $\mathcal{L} = (\hat{y}-y)^2$.
-
-| Step | Calculation | Result |
-|---|---|---|
-| Forward pass | $\hat{y} = 0.5 \times 2 + 0 $ | $\hat{y}=1$ |
-| Loss | $(1-3)^2$ | $\mathcal{L}=4$ |
-| Gradient w.r.t. $\hat{y}$ | $2(\hat{y}-y)$ | $-4$ |
-| Gradient w.r.t. $w$ | $-4 \times x = -4 \times 2$ | $-8$ |
-| Gradient w.r.t. $b$ | $-4 \times 1$ | $-4$ |
-| Update (learning rate $\eta=0.1$) | $w \leftarrow 0.5 - 0.1\times(-8)$; $b \leftarrow 0 - 0.1\times(-4)$ | $w=1.3$, $b=0.4$ |
-| New forward pass | $1.3 \times 2 + 0.4$ | $\hat{y}=3.0$ |
-
-After a single update the prediction moved from 1 to 3, which is exactly the target. (The learning rate was chosen to keep the numbers clean; in real networks many small steps are needed.)
+> **Running example — stage 3.** Our neuron has no activation function, so $\hat{y} = z$ and the middle factor is simply 1. Working backwards from the loss $\mathcal{L}=(\hat{y}-y)^2$:
+>
+> - How does the loss change with the prediction? $\dfrac{\partial \mathcal{L}}{\partial \hat{y}} = 2(\hat{y}-y) = 2(1-3) = -4$.
+> - How does the prediction change with each weight? $\dfrac{\partial \hat{y}}{\partial w} = x = 2$ and $\dfrac{\partial \hat{y}}{\partial b} = 1$.
+> - Multiplying along each path (chain rule): $\dfrac{\partial \mathcal{L}}{\partial w} = -4 \times 2 = -8$ and $\dfrac{\partial \mathcal{L}}{\partial b} = -4 \times 1 = -4$.
+>
+> Both gradients are negative: increasing $w$ or $b$ would *lower* the loss, so the update will push them up.
 
 This is exactly what `loss.backward()` does automatically in PyTorch for networks with millions of weights: apply the chain rule layer by layer, rather than working it out by hand as above.
+
+#### Interactive: the training loop on the running example
+
+The stepper below runs the four stages of the loop on the running example. Click **Next stage** to walk through forward pass, loss, backward pass and update; the picture shows the loss for every possible pair $(w, b)$ — blue is low, red is high. The white dot is the neuron's current weights, the arrow shows the downhill direction found by the backward pass, and the dashed line shows where the update will move it. Click **Apply update** to start the next round.
 
 <div id="bp-widget" class="aisafety-widget">
 <div class="aisw-controls">
 <label>w <input type="range" id="bp-w" min="-2" max="3" step="0.05" value="0.5"> <span id="bp-w-val">0.50</span></label>
 <label>b <input type="range" id="bp-b" min="-3" max="3" step="0.05" value="0"> <span id="bp-b-val">0.00</span></label>
 <label>η <input type="range" id="bp-eta" min="0.01" max="0.3" step="0.01" value="0.1"> <span id="bp-eta-val">0.10</span></label>
-<button type="button" id="bp-step">Step</button>
+<button type="button" id="bp-next">Next stage ▸</button>
 <button type="button" id="bp-reset">Reset</button>
 </div>
+<div id="bp-stages" class="aisw-stats"></div>
 <canvas id="bp-canvas" width="420" height="380"></canvas>
-<p class="aisw-hint">x = 2, y = 3 — the same worked example as the text. Drag w/b to feel the loss surface, or click Step to apply one gradient-descent update and watch the dot move downhill.</p>
+<p class="aisw-hint">x = 2, y = 3 — the running example. With the default settings, round 1 reproduces the numbers in the text exactly and lands on the target (loss 0). Now try changing η: at 0.2 each update overshoots to the other side of the valley and bounces back and forth; above 0.2 it diverges (the dot pins to the edge of the plot). Drag w or b to restart from anywhere.</p>
 <div id="bp-stats" class="aisw-stats"></div>
 </div>
 
@@ -1110,6 +1245,7 @@ This is exactly what `loss.backward()` does automatically in PyTorch for network
 (function () {
   const canvas = document.getElementById("bp-canvas");
   const ctx = canvas.getContext("2d");
+  const stagesEl = document.getElementById("bp-stages");
   const statsEl = document.getElementById("bp-stats");
   const wInput = document.getElementById("bp-w");
   const bInput = document.getElementById("bp-b");
@@ -1117,23 +1253,21 @@ This is exactly what `loss.backward()` does automatically in PyTorch for network
   const wVal = document.getElementById("bp-w-val");
   const bVal = document.getElementById("bp-b-val");
   const etaVal = document.getElementById("bp-eta-val");
-  const stepBtn = document.getElementById("bp-step");
+  const nextBtn = document.getElementById("bp-next");
   const resetBtn = document.getElementById("bp-reset");
 
   const x = 2, y = 3;
   const wMin = -2, wMax = 3, bMin = -3, bMax = 3;
   const pad = 36;
   let trail = [];
+  let stage = 0;
+  let round = 0;
 
-  function loss(w, b) {
-    const yhat = w * x + b;
-    return (yhat - y) ** 2;
-  }
-  function grad(w, b) {
-    const yhat = w * x + b;
-    const d = 2 * (yhat - y);
-    return [d * x, d];
-  }
+  const f = (v) => v.toFixed(2).replace("-", "−");
+  const clampW = (v) => Math.min(wMax, Math.max(wMin, v));
+  const clampB = (v) => Math.min(bMax, Math.max(bMin, v));
+  function loss(w, b) { const yhat = w * x + b; return (yhat - y) ** 2; }
+  function grad(w, b) { const d = 2 * (w * x + b - y); return [d * x, d]; }
 
   function toPx(w, b) {
     const W = canvas.width, H = canvas.height;
@@ -1151,17 +1285,12 @@ This is exactly what `loss.backward()` does automatically in PyTorch for network
     return `rgb(${r},${g},${bch})`;
   }
 
-  function draw() {
-    const w = parseFloat(wInput.value);
-    const b = parseFloat(bInput.value);
-    const eta = parseFloat(etaInput.value);
-    wVal.textContent = w.toFixed(2);
-    bVal.textContent = b.toFixed(2);
-    etaVal.textContent = eta.toFixed(2);
-
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-
+  const surface = document.createElement("canvas");
+  surface.width = canvas.width;
+  surface.height = canvas.height;
+  (function paintSurface() {
+    const sctx = surface.getContext("2d");
+    const W = surface.width, H = surface.height;
     const cells = 40;
     let maxL = 0;
     const losses = [];
@@ -1179,24 +1308,45 @@ This is exactly what `loss.backward()` does automatically in PyTorch for network
     let idx = 0;
     for (let i = 0; i < cells; i++) {
       for (let j = 0; j < cells; j++) {
-        const l = losses[idx++];
-        const t = Math.sqrt(Math.min(1, l / (maxL || 1)));
-        ctx.fillStyle = colorFor(t);
-        const px = pad + i * cellW;
-        const py = H - pad - (j + 1) * cellH;
-        ctx.fillRect(px, py, cellW + 1, cellH + 1);
+        const t = Math.sqrt(Math.min(1, losses[idx++] / (maxL || 1)));
+        sctx.fillStyle = colorFor(t);
+        sctx.fillRect(pad + i * cellW, H - pad - (j + 1) * cellH, cellW + 1, cellH + 1);
       }
     }
+  })();
 
+  const titles = ["1 · Forward pass", "2 · Loss", "3 · Backward pass", "4 · Update"];
+
+  function stageText(i, w, b, eta) {
+    const yhat = w * x + b;
+    const d = 2 * (yhat - y);
+    const [gw, gb] = grad(w, b);
+    if (i === 0) return `ŷ = w·x + b = ${f(w)} × ${x} + ${f(b)} = <b>${f(yhat)}</b> &nbsp;(true answer y = ${y})`;
+    if (i === 1) return `L = (ŷ − y)² = (${f(yhat)} − ${y})² = <b>${f(loss(w, b))}</b>`;
+    if (i === 2) return `∂L/∂ŷ = 2(ŷ − y) = ${f(d)} &nbsp;→&nbsp; ∂L/∂w = ${f(d)} × ${x} = <b>${f(gw)}</b> &nbsp;,&nbsp; ∂L/∂b = ${f(d)} × 1 = <b>${f(gb)}</b>`;
+    return `w ← ${f(w)} − ${f(eta)} × (${f(gw)}) = <b>${f(w - eta * gw)}</b> &nbsp;,&nbsp; b ← ${f(b)} − ${f(eta)} × (${f(gb)}) = <b>${f(b - eta * gb)}</b>`;
+  }
+
+  function draw() {
+    const w = parseFloat(wInput.value);
+    const b = parseFloat(bInput.value);
+    const eta = parseFloat(etaInput.value);
+    wVal.textContent = f(w);
+    bVal.textContent = f(b);
+    etaVal.textContent = f(eta);
+
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(surface, 0, 0);
     ctx.strokeStyle = "#1f2430";
     ctx.lineWidth = 1;
     ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
 
-    if (trail.length > 1) {
+    if (trail.length > 0) {
       ctx.strokeStyle = "#1f2430";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      trail.forEach(([tw, tb], i) => {
+      trail.concat([[w, b]]).forEach(([tw, tb], i) => {
         const [px, py] = toPx(tw, tb);
         if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       });
@@ -1205,39 +1355,64 @@ This is exactly what `loss.backward()` does automatically in PyTorch for network
 
     const [px, py] = toPx(w, b);
     const [gw, gb] = grad(w, b);
-    const gnorm = Math.hypot(gw, gb) || 1;
-    const arrowLen = 35;
-    const ax = px - (gw / gnorm) * arrowLen;
-    const ay = py + (gb / gnorm) * arrowLen;
-    ctx.strokeStyle = "#1d4ed8";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ax, ay); ctx.stroke();
+
+    if (stage >= 2) {
+      const gnorm = Math.hypot(gw, gb) || 1;
+      const arrowLen = 35;
+      ctx.strokeStyle = "#1d4ed8";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - (gw / gnorm) * arrowLen, py + (gb / gnorm) * arrowLen);
+      ctx.stroke();
+    }
+    if (stage >= 3) {
+      const [nx, ny] = toPx(clampW(w - eta * gw), clampB(b - eta * gb));
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = "#1f2430";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath(); ctx.arc(nx, ny, 6, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 2; ctx.stroke();
+    }
 
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
     ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 2; ctx.stroke();
 
-    const yhat = w * x + b;
-    const l = loss(w, b);
-    statsEl.innerHTML = `ŷ = wx + b = ${yhat.toFixed(2)} &nbsp;|&nbsp; L = (ŷ-y)² = ${l.toFixed(2)} &nbsp;|&nbsp; ∂L/∂w = ${gw.toFixed(2)} &nbsp;|&nbsp; ∂L/∂b = ${gb.toFixed(2)}`;
+    stagesEl.innerHTML = titles.map((t, i) => {
+      const shown = i <= stage;
+      const style = `padding:.2rem .5rem;border-left:3px solid ${i === stage ? "#1d4ed8" : "transparent"};background:${i === stage ? "#eef4ff" : "transparent"};opacity:${shown ? 1 : 0.4}`;
+      return `<div style="${style}"><b>${t}</b>${shown ? " — " + stageText(i, w, b, eta) : ""}</div>`;
+    }).join("");
+    nextBtn.textContent = stage < 3 ? "Next stage ▸" : "Apply update ▸ new round";
+    statsEl.innerHTML = `round ${round} &nbsp;|&nbsp; current loss L = ${f(loss(w, b))}`;
   }
 
-  function applyStep() {
+  function next() {
+    if (stage < 3) { stage++; draw(); return; }
     const w = parseFloat(wInput.value);
     const b = parseFloat(bInput.value);
     const eta = parseFloat(etaInput.value);
-    trail.push([w, b]);
     const [gw, gb] = grad(w, b);
-    wInput.value = Math.min(wMax, Math.max(wMin, w - eta * gw));
-    bInput.value = Math.min(bMax, Math.max(bMin, b - eta * gb));
+    trail.push([w, b]);
+    wInput.value = clampW(w - eta * gw);
+    bInput.value = clampB(b - eta * gb);
+    stage = 0;
+    round++;
     draw();
   }
 
-  stepBtn.addEventListener("click", applyStep);
+  function restart() { trail = []; stage = 0; round = 0; draw(); }
+
+  nextBtn.addEventListener("click", next);
   resetBtn.addEventListener("click", () => {
-    wInput.value = 0.5; bInput.value = 0; trail = []; draw();
+    wInput.value = 0.5; bInput.value = 0; etaInput.value = 0.1; restart();
   });
-  [wInput, bInput, etaInput].forEach((el) => el.addEventListener("input", () => { trail = []; draw(); }));
+  [wInput, bInput].forEach((el) => el.addEventListener("input", restart));
+  etaInput.addEventListener("input", draw);
 
   draw();
 })();
@@ -1256,6 +1431,12 @@ The **learning rate** $\eta$ is the size of the step:
 - **Too large:** the steps overshoot the valley and the loss bounces around or even grows.
 - **Too small:** learning is very slow and may get stuck.
 - **Just right:** the loss decreases steadily.
+
+> **Running example — stage 4.** Using the gradients from stage 3 and $\eta = 0.1$:
+> $w \leftarrow 0.5 - 0.1 \times (-8) = 1.3$ and $b \leftarrow 0 - 0.1 \times (-4) = 0.4$.
+> Running the forward pass again with the new weights gives $\hat{y} = 1.3 \times 2 + 0.4 = 3.0$, which is exactly the target: the loss has dropped from 4 to 0 in a single step. The loop then starts over from stage 1 with the new weights.
+>
+> This one-step success is special to $\eta = 0.1$ and to this tiny neuron; in real networks many small steps are needed. For this neuron, one update multiplies the error $\hat{y}-y$ by $(1 - 10\eta)$ (the 10 comes from $2(x^2+1)$). At $\eta=0.1$ that factor is 0, at $\eta=0.2$ it is $-1$ (the error flips sign every step and never shrinks), and above $0.2$ it is larger than 1 in size, so the error grows. You can see all three behaviours in the stepper above; the widget below shows the same effect on an even simpler curve.
 
 <div id="eta-widget" class="aisafety-widget">
 <div class="aisw-controls">
