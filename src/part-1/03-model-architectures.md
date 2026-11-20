@@ -1034,6 +1034,263 @@ Hyperparameters are discussed in Section 3.4.
 
 ## 3.3 How a Network Learns: Training Mechanics
 
+
+Before introducing backpropagation and gradient descent, it is
+important to understand what a **derivative** tells us.
+
+A derivative measures how quickly a quantity changes when we
+slightly change one of its inputs. In neural network training,
+we are particularly interested in how the loss changes when
+we change a model parameter (such as a weight).
+
+Think of the loss as a curve: the height tells us how wrong
+the model is, while the slope tells us whether changing a
+weight will increase or decrease the loss.
+
+#### Try it: what does a derivative tell us?
+
+The interactive example uses the same training example as
+the sections below: input $x=2$, target $y=3$, and model
+$\hat y=wx+b$. To keep the example simple, bias $b$ is fixed
+at zero, so the loss is:
+
+$$
+\mathcal{L}(w)=(2w-3)^2
+$$
+
+Move the **weight $w$** slider to choose a point on the loss
+curve. The green dashed line is the tangent (instantaneous
+slope); the orange line is the secant (average slope between
+two nearby points). Reduce **$h$** to bring the second point
+closer and watch the secant slope approach the derivative.
+
+<div id="derivative-intro-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>w (weight) <input type="range" id="di-w" min="-0.5" max="2" step="0.05" value="0.5"> <span id="di-w-val">0.50</span></label>
+<label>h (distance) <input type="range" id="di-h" min="0.05" max="0.5" step="0.05" value="0.5"> <span id="di-h-val">0.50</span></label>
+<button type="button" id="di-min">Set w = 1.5 (minimum)</button>
+<button type="button" id="di-reset">Reset</button>
+</div>
+<canvas id="di-canvas" width="680" height="360"></canvas>
+<p class="aisw-hint">Blue = loss curve; green dashed = tangent; orange = secant. P is the current weight and Q is a nearby weight. Reduce h to see the secant slope approach the derivative.</p>
+<div id="di-stats" class="aisw-stats"></div>
+<div id="di-explanation" class="aisw-stats"></div>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById("derivative-intro-widget");
+  if (!root || root.dataset.initialized) return;
+  root.dataset.initialized = "true";
+
+  const canvas = root.querySelector("#di-canvas");
+  const ctx = canvas.getContext("2d");
+  const wInput = root.querySelector("#di-w");
+  const hInput = root.querySelector("#di-h");
+  const wVal = root.querySelector("#di-w-val");
+  const hVal = root.querySelector("#di-h-val");
+  const stats = root.querySelector("#di-stats");
+  const explanation = root.querySelector("#di-explanation");
+
+  // Same running example as Section 3.3: x=2, y=3, b=0.
+  function loss(w) {
+    return (2 * w - 3) ** 2;
+  }
+
+  function derivative(w) {
+    return 8 * w - 12;
+  }
+
+  const xMin = -0.5, xMax = 2.5;
+  const yMin = 0, yMax = 26;
+  const pad = {left: 48, right: 18, top: 18, bottom: 42};
+
+  function toPx(w, L) {
+    return [
+      pad.left + (w - xMin) / (xMax - xMin) *
+        (canvas.width - pad.left - pad.right),
+      canvas.height - pad.bottom - (L - yMin) / (yMax - yMin) *
+        (canvas.height - pad.top - pad.bottom)
+    ];
+  }
+
+  function draw() {
+    const w = parseFloat(wInput.value);
+    const h = Math.min(parseFloat(hInput.value), xMax - w);
+    const q = w + h;
+
+    const L = loss(w);
+    const Lq = loss(q);
+    const grad = derivative(w);
+    const secant = (Lq - L) / h;
+
+    wVal.textContent = w.toFixed(2);
+    hVal.textContent = h.toFixed(2);
+
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, plotW, plotH);
+    ctx.clip();
+
+    // Horizontal grid and loss-axis labels.
+    ctx.strokeStyle = "#d9dde5";
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "#5b6475";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+
+    for (let v = 0; v <= 25; v += 5) {
+      const [, py] = toPx(xMin, v);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, py);
+      ctx.lineTo(W - pad.right, py);
+      ctx.stroke();
+      ctx.fillText(String(v), pad.left - 7, py + 4);
+    }
+
+    // Vertical axis at w=0.
+    const [zeroX] = toPx(0, 0);
+    ctx.beginPath();
+    ctx.moveTo(zeroX, pad.top);
+    ctx.lineTo(zeroX, H - pad.bottom);
+    ctx.stroke();
+
+    // Draw the loss curve.
+    ctx.strokeStyle = "#1d4ed8";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    for (let i = 0; i <= 200; i++) {
+      const x = xMin + i / 200 * (xMax - xMin);
+      const [px, py] = toPx(x, loss(x));
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    // Draw tangent and secant lines through P.
+    function drawLine(slope, colour, dashed) {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash(dashed ? [6, 4] : []);
+
+      const [x1, y1] = toPx(
+        xMin, L + slope * (xMin - w)
+      );
+      const [x2, y2] = toPx(
+        xMax, L + slope * (xMax - w)
+      );
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Green tangent: the exact derivative at the current weight.
+    drawLine(grad, "#16a36b", true);
+
+    // Orange secant: the average slope between P and Q.
+    drawLine(secant, "#d97706", false);
+
+    // Vertical guide to show the horizontal interval h.
+    const [px, py] = toPx(w, L);
+    const [qx, qy] = toPx(q, Lq);
+
+    ctx.strokeStyle = "#d97706";
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(qx, py);
+    ctx.lineTo(qx, qy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Point P.
+    ctx.fillStyle = "#1f2430";
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Point Q.
+    ctx.fillStyle = "#d97706";
+    ctx.beginPath();
+    ctx.arc(qx, qy, 5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = "#1f2430";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("P", px + 8, py - 9);
+    ctx.fillText("Q", qx + 8, qy - 9);
+
+    ctx.restore();
+
+    // Axis labels.
+    ctx.fillStyle = "#5b6475";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Model weight w", pad.left + plotW / 2, H - 8);
+    ctx.textAlign = "left";
+    ctx.fillText("Loss L(w)", pad.left, 12);
+
+    const f = v => v.toFixed(3).replace("-", "−");
+
+    stats.innerHTML =
+      `w = ${f(w)} | L(w) = ${f(L)} | ` +
+      `L(w+h) = ${f(Lq)}<br>` +
+      `Secant slope = [L(w+h) − L(w)] / h = <b>${f(secant)}</b><br>` +
+      `Derivative dL/dw = <b>${f(grad)}</b>`;
+
+    let message;
+    if (Math.abs(grad) < 0.0001) {
+      message = "The derivative is zero: the curve is flat at this point. " +
+        "For this loss function, this is its minimum.";
+    } else if (grad < 0) {
+      message = "The derivative is negative: increasing w locally " +
+        "reduces the loss. Gradient descent will increase w.";
+    } else {
+      message = "The derivative is positive: decreasing w locally " +
+        "reduces the loss. Gradient descent will decrease w.";
+    }
+
+    explanation.textContent = message;
+  }
+
+  wInput.addEventListener("input", draw);
+  hInput.addEventListener("input", draw);
+
+  root.querySelector("#di-min").addEventListener("click", () => {
+    wInput.value = 1.5;
+    draw();
+  });
+
+  root.querySelector("#di-reset").addEventListener("click", () => {
+    wInput.value = 0.5;
+    hInput.value = 0.5;
+    draw();
+  });
+
+  draw();
+})();
+</script>
+
+**What to observe:**
+
+- At $w=0.5$, the derivative is $-8$. Increasing the weight reduces the loss.
+- At $w=1.5$, the derivative is zero. The loss is at its minimum.
+- At $w=2$, the derivative is $+4$. Decreasing the weight reduces the loss.
+
+This is the basic idea behind gradient descent: move the model parameters in the direction opposite to the gradient.
+
+
 Training is a repeated four-step loop:
 
 1. **Forward pass:** feed examples in and compute predictions.
