@@ -5,19 +5,24 @@
 
 In Chapter 2 we saw *how* a model can be taught: with labels, without labels, through rewards, or by imitating an expert. In this chapter we look at *what* is being taught — the model itself.
 
-A **neural network** is a computer program that learns a task from examples instead of following hand-written rules. Its **architecture** is its shape and wiring: how many parts it has, what each part does, and how the parts are connected. Different tasks need different architectures. A network that reads camera images is wired differently from one that reads LiDAR points or predicts where a pedestrian will walk next.
+A [**neural network**](#glossary-neural-network) is a computer program that learns a task from examples instead of following hand-written rules. Its [**architecture**](#glossary-model-architecture) is its shape and wiring: how many parts it has, what each part does, and how the parts are connected. Different tasks need different architectures. A network that reads camera images is wired differently from one that reads [LiDAR](#glossary-point-cloud) points or predicts where a pedestrian will walk next.
 
-Recall from Section 2.2 that training means finding the parameters $\theta$ that make a loss function small:
+Key technical terms are linked to the **Glossary** at the end of this chapter. The separate **Mathematical notation** table summarises the main symbols used in equations and examples.
+
+Recall from Section 2.2 that training means finding the [parameters](#glossary-model-parameters) [$\theta$](#notation-theta) that make a [loss function](#glossary-loss-function) small:
+In the objective below, [$f_\theta$](#notation-f-theta) is the model function, [$x_i$](#notation-data) and [$y_i$](#notation-data) are the input and target for example $i$, [$N$](#notation-dataset-size) is the number of examples, and [$\mathcal{L}$](#notation-loss) is the loss function.
 
 $$
 \theta^{*} = \arg\min_{\theta} \; \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\big(f_\theta(x_i),\, y_i\big)
 $$
 
-#### Try it: the simplest possible $f_\theta$ — linear regression
+#### Try it: the simplest possible $f_\theta$ — [linear regression](#glossary-linear-regression)
 
-Before opening up a full neural network, it helps to see this formula at work in its simplest case: $f_\theta(x) = wx + b$ (a straight line) with $\mathcal{L} = (\hat y - y)^2$. This is ordinary **linear regression** — one weight $w$, one bias $b$, no activation function.
+Here, [$\hat y$](#notation-data) denotes the predicted value and $y$ the target.
 
-Edit the points below and watch $w$, $b$ and the mean squared error update live.
+Before opening up a full neural network, it helps to see this formula at work in its simplest case: $f_\theta(x) = wx + b$ (a straight line) with $\mathcal{L} = (\hat y - y)^2$. This is ordinary **linear regression** — one [weight](#glossary-model-parameters) [$w$](#notation-weight-bias), one [bias](#glossary-model-parameters) [$b$](#notation-weight-bias), no [activation function](#glossary-activation-function).
+
+Edit the points below and watch $w$, $b$ and the [mean squared error](#glossary-loss-function) update live.
 
 <div id="lr-widget" class="aisafety-widget">
 <div class="aisw-controls">
@@ -31,6 +36,8 @@ Edit the points below and watch $w$, $b$ and the mean squared error update live.
 <p class="aisw-hint">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
 <div id="lr-stats" class="aisw-stats"></div>
 </div>
+
+The widget also reports [$R^2$](#notation-regression-metrics), the coefficient of determination, as a measure of how well the fitted line explains the variation in the points.
 
 <script>
 (function () {
@@ -192,23 +199,23 @@ Edit the points below and watch $w$, $b$ and the mean squared error update live.
 })();
 </script>
 
-> **Note:** $w$ and $b$ above are computed with the closed-form least-squares solution, $w = \dfrac{\sum_i (x_i-\bar x)(y_i-\bar y)}{\sum_i (x_i-\bar x)^2}$, $b = \bar y - w\bar x$ — the direct solution for this simplest case of $f_\theta$. Section 3.3 introduces the general method (gradient descent) used when $f_\theta$ is a full neural network and no closed-form solution exists.
+> **Note:** $w$ and $b$ above are computed with the closed-form least-squares solution, $w = \dfrac{\sum_i (x_i-\bar x)(y_i-\bar y)}{\sum_i (x_i-\bar x)^2}$, $b = \bar y - w\bar x$ — the direct solution for this simplest case of $f_\theta$. Section 3.3 introduces the general method ([gradient descent](#glossary-gradient-descent)) used when $f_\theta$ is a full neural network and no closed-form solution exists.
 
 In this chapter, $f_\theta$ — the "model" — is opened up and explained. The chapter is organised in the order a beginner needs it:
 
 1. **Building blocks** (Section 3.2): the small parts every neural network is made of.
 2. **Training mechanics** (Section 3.3): how a network adjusts itself to make fewer mistakes.
-3. **Generalisation** (Section 3.4): how to make sure the network also works on data it has never seen, including the settings (hyperparameters) that control training.
-4. **Architecture families** (Section 3.5): MLPs, CNNs, LSTMs, encoder–decoders, transformers, point-cloud networks and bird's-eye-view (BEV) networks.
+3. [**Generalisation**](#glossary-generalisation) (Section 3.4): how to make sure the network also works on data it has never seen, including the settings ([hyperparameters](#glossary-hyperparameter)) that control training.
+4. **Architecture families** (Section 3.5): [MLPs](#glossary-mlp), [CNNs](#glossary-cnn), [LSTMs](#glossary-rnn), [encoder–decoders](#glossary-encoder-decoder), [transformers](#glossary-transformer), [point-cloud networks](#glossary-point-cloud) and [bird's-eye-view (BEV) networks](#glossary-bev).
 5. **Putting it together** (Section 3.6): how the pieces combine into a complete perception network.
 
 > **Note:** This chapter explains the ideas. Where each model is *used* in a vehicle is the subject of Chapter 4, how the models fit into a complete driving system is covered in Chapter 5, and how they are made small and fast enough to run on vehicle hardware is covered in Chapter 6.
 
 ## 3.2 Neural Network Building Blocks
 
-### 3.2.1 The neuron
+### 3.2.1 The [neuron](#glossary-neuron)
 
-The smallest unit of a neural network is the **neuron**. It receives some numbers as input, multiplies each one by a **weight** (how important that input is), adds the results together with a **bias** (a constant shift), and then passes the total through an **activation function** $\phi$:
+The smallest unit of a neural network is the **neuron**. It receives some numbers as input, multiplies each one by a **weight** (how important that input is), adds the results together with a **bias** (a constant shift), and then passes the total through an **activation function** [$\phi$](#notation-activation):
 
 $$
 y = \phi\big(w_1 x_1 + w_2 x_2 + \dots + w_n x_n + b\big) = \phi\big(\mathbf{w}^\top \mathbf{x} + b\big)
@@ -376,7 +383,7 @@ You can think of a neuron as a tiny calculator that makes a small decision, such
 
 **Weights** and **biases** are the "knobs" of the network. At the start of training they have arbitrary values and the network's answers are poor. Training is the process of turning all these knobs, little by little, until the answers become good. A modern network can have millions or billions of such knobs. Together they are called the model **parameters**, written $\theta$.
 
-### 3.2.3 Layers
+### 3.2.3 [Layers](#glossary-layer)
 
 Neurons are arranged in rows called **layers**:
 
@@ -384,7 +391,7 @@ Neurons are arranged in rows called **layers**:
 - One or more **hidden layers** process the data step by step.
 - The **output layer** produces the answer (for example, "pedestrian" or "car").
 
-If a layer has $n_{in}$ inputs and $n_{out}$ neurons, all of its weights can be written as a matrix $W$ and the layer computes:
+If a layer has [$n_{in}$](#notation-layer-size) inputs and [$n_{out}$](#notation-layer-size) neurons, all of its weights can be written as a matrix [$W$](#notation-weight-matrix) and a bias vector [$\mathbf b$](#notation-weight-matrix); the layer computes:
 
 $$
 \mathbf{h} = \phi\big(W\mathbf{x} + \mathbf{b}\big)
@@ -392,7 +399,7 @@ $$
 
 Such a layer has $n_{in} \times n_{out}$ weights and $n_{out}$ biases. For example, a layer taking 100 numbers and producing 50 has $100 \times 50 + 50 = 5\,050$ parameters.
 
-A network with many hidden layers is called a **deep** network, which is where the term *deep learning* comes from. Early layers tend to learn simple patterns, and later layers combine them into more complex ones.
+A network with many hidden layers is called a **deep** network, which is where the term [*deep learning*](#glossary-deep-learning) comes from. Early layers tend to learn simple patterns, and later layers combine them into more complex ones.
 
 <div id="layer-widget" class="aisafety-widget">
 <div class="aisw-controls">
@@ -609,13 +616,13 @@ An **activation function** is a small mathematical function applied to the outpu
 | Function | Formula | Plain-language description | Typical use |
 |---|---|---|---|
 | **ReLU** | $\max(0, x)$ | Negative values become zero; positive values pass unchanged. | Default choice in hidden layers of CNNs |
-| **Leaky ReLU** | $\max(0.01x, x)$ | Like ReLU, but lets a tiny amount of negative values through. | Detection networks (e.g. YOLO variants) |
+| **Leaky ReLU** | $\max(0.01x, x)$ | Like ReLU, but lets a tiny amount of negative values through. | Detection networks (e.g. [YOLO](#glossary-yolo) variants) |
 | **Sigmoid** | $\dfrac{1}{1+e^{-x}}$ | Squashes any number into the range 0 to 1. | Output of a yes/no decision |
 | **Tanh** | $\dfrac{e^{x}-e^{-x}}{e^{x}+e^{-x}}$ | Squashes any number into the range −1 to 1. | Inside LSTM cells |
 | **Softmax** | $\dfrac{e^{z_i}}{\sum_j e^{z_j}}$ | Turns a list of numbers into probabilities that add up to 100%. | Output of a multi-class classifier |
 | **GELU / SiLU** | $x\,\Phi(x)$ / $x\,\sigma(x)$ | Smooth versions of ReLU. | Transformers and modern CNNs |
 
-> **The vanishing-gradient problem.** Sigmoid and tanh become almost flat for very large or very small inputs. In a flat region, the signal used to teach the network (the gradient, Section 3.3) is close to zero, so early layers of a deep network barely learn. ReLU-type functions do not flatten for positive values, which is one reason they dominate modern networks.
+> [**The vanishing-gradient problem**](#glossary-gradient). Sigmoid and tanh become almost flat for very large or very small inputs. In a flat region, the signal used to teach the network (the gradient, Section 3.3) is close to zero, so early layers of a deep network barely learn. ReLU-type functions do not flatten for positive values, which is one reason they dominate modern networks.
 
 <div id="act-widget" class="aisafety-widget">
 <div class="aisw-controls">
@@ -741,17 +748,17 @@ An **activation function** is a small mathematical function applied to the outpu
 })();
 </script>
 
-### 3.2.5 Convolution and pooling
+### 3.2.5 [Convolution](#glossary-convolution) and [pooling](#glossary-pooling)
 
 Images contain a lot of numbers (a $640 \times 640$ colour image has over a million). Connecting every pixel to every neuron would need far too many weights. **Convolution** solves this with a clever shortcut.
 
-A **convolution** slides a small window — called a **filter** or **kernel**, for example $3\times3$ pixels — across the image. At each position it multiplies the pixels under the window by the filter's weights and adds them up. The *same* filter is reused at every position, so the number of weights stays small, and a pattern (such as a vertical edge) is detected wherever it appears in the image. The result is called a **feature map**.
+A **convolution** slides a small window — called a [**filter**](#glossary-convolution) or [**kernel**](#glossary-convolution), for example $3\times3$ pixels — across the image. At each position it multiplies the pixels under the window by the filter's weights and adds them up. The *same* filter is reused at every position, so the number of weights stays small, and a pattern (such as a vertical edge) is detected wherever it appears in the image. The result is called a [**feature map**](#glossary-convolution).
 
 Three settings control a convolution:
 
-- **Kernel size $k$:** the size of the window.
-- **Stride $s$:** how many pixels the window moves each time. A stride of 2 halves the width and height.
-- **Padding $p$:** zeros added around the border so that edges are not lost.
+- [**Kernel size**](#glossary-convolution) [$k$](#notation-convolution): the size of the window.
+- [**Stride**](#glossary-convolution) [$s$](#notation-convolution): how many pixels the window moves each time. A stride of 2 halves the width and height.
+- [**Padding**](#glossary-convolution) [$p$](#notation-convolution): zeros added around the border so that edges are not lost.
 
 The output width (or height) for an input of size $n$ is:
 
@@ -982,7 +989,7 @@ $$
 })();
 </script>
 
-### 3.2.6 Normalisation layers
+### 3.2.6 [Normalisation layers](#glossary-normalisation)
 
 As numbers pass through many layers they can become very large or very small, which makes learning slow and unstable. A **normalisation layer** rescales the numbers to a standard range:
 
@@ -990,19 +997,19 @@ $$
 \hat{x} = \frac{x - \mu}{\sqrt{\sigma^{2} + \epsilon}}, \qquad y = \gamma\,\hat{x} + \beta
 $$
 
-where $\mu$ and $\sigma^2$ are the mean and variance of the values, and $\gamma$ and $\beta$ are two learnable parameters that let the network undo the rescaling if that turns out to be better.
+where [$\mu$](#notation-normalisation) and [$\sigma^2$](#notation-normalisation) are the mean and variance of the values, and [$\gamma$](#notation-normalisation) and [$\beta$](#notation-normalisation) are two learnable parameters that let the network undo the rescaling if that turns out to be better.
 
-- **Batch Normalisation (BatchNorm)** computes the mean and variance across a batch of examples. Typical in CNNs.
-- **Layer Normalisation (LayerNorm)** computes them across the features of a single example. Typical in transformers and recurrent networks.
+- [**Batch Normalisation (BatchNorm)**](#glossary-normalisation) computes the mean and variance across a batch of examples. Typical in CNNs.
+- [**Layer Normalisation (LayerNorm)**](#glossary-normalisation) computes them across the features of a single example. Typical in transformers and recurrent networks.
 
-### 3.2.7 Weight initialisation
+### 3.2.7 [Weight initialisation](#glossary-weight-initialisation)
 
 Before training, the weights need starting values. If they are all zero, every neuron learns the same thing; if they are too large or too small, learning can stall. Standard recipes choose small random values whose size depends on the layer width:
 
 - **Xavier (Glorot) initialisation:** variance $\dfrac{2}{n_{in}+n_{out}}$ — used with tanh and sigmoid.
 - **He initialisation:** variance $\dfrac{2}{n_{in}}$ — used with ReLU.
 
-### 3.2.8 Residual (skip) connections
+### 3.2.8 [Residual (skip) connections](#glossary-residual-connection)
 
 In a **residual connection**, the input of a block is added to its output:
 
@@ -1012,9 +1019,9 @@ $$
 
 The block $F$ now only needs to learn the *change* to apply to its input, and information (and the learning signal) can travel along the shortcut across many layers. This makes very deep networks much easier to train and is the key idea of **ResNet**. Residual connections are used in almost every modern architecture, including transformers.
 
-### 3.2.9 Attention (a first look)
+### 3.2.9 [Attention](#glossary-attention) (a first look)
 
-**Attention** lets a network decide which parts of its input to focus on when producing each part of its output — like highlighting the important words in a sentence. For every element, the network builds a **query** $Q$ ("what am I looking for?"), and every element offers a **key** $K$ ("what do I contain?") and a **value** $V$ ("what information do I give?"). Keys that match the query receive a high weight, and the output is the weighted mix of the values:
+**Attention** lets a network decide which parts of its input to focus on when producing each part of its output — like highlighting the important words in a sentence. For every element, the network builds a [**query**](#glossary-attention) [$Q$](#notation-attention) ("what am I looking for?"), and every element offers a [**key**](#glossary-attention) [$K$](#notation-attention) ("what do I contain?") and a [**value**](#glossary-attention) [$V$](#notation-attention) ("what information do I give?"). Keys that match the query receive a high weight, and the output is the weighted mix of the values:
 
 $$
 \text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
@@ -1026,7 +1033,7 @@ Attention is explained fully in Section 3.5.5 as the core of the transformer.
 
 | | Parameters | Hyperparameters |
 |---|---|---|
-| **Examples** | Weights and biases | Learning rate, batch size, number of layers, dropout rate |
+| **Examples** | Weights and biases | [Learning rate](#glossary-learning-rate), batch size, number of layers, [dropout rate](#glossary-regularisation) |
 | **Who sets them?** | The network, by learning | The engineer, before training |
 | **When?** | During training | Before (and between) training runs |
 
@@ -1034,277 +1041,20 @@ Hyperparameters are discussed in Section 3.4.
 
 ## 3.3 How a Network Learns: Training Mechanics
 
-
-Before introducing backpropagation and gradient descent, it is
-important to understand what a **derivative** tells us.
-
-A derivative measures how quickly a quantity changes when we
-slightly change one of its inputs. In neural network training,
-we are particularly interested in how the loss changes when
-we change a model parameter (such as a weight).
-
-Think of the loss as a curve: the height tells us how wrong
-the model is, while the slope tells us whether changing a
-weight will increase or decrease the loss.
-
-#### Try it: what does a derivative tell us?
-
-The interactive example uses the same training example as
-the sections below: input $x=2$, target $y=3$, and model
-$\hat y=wx+b$. To keep the example simple, bias $b$ is fixed
-at zero, so the loss is:
-
-$$
-\mathcal{L}(w)=(2w-3)^2
-$$
-
-Move the **weight $w$** slider to choose a point on the loss
-curve. The green dashed line is the tangent (instantaneous
-slope); the orange line is the secant (average slope between
-two nearby points). Reduce **$h$** to bring the second point
-closer and watch the secant slope approach the derivative.
-
-<div id="derivative-intro-widget" class="aisafety-widget">
-<div class="aisw-controls">
-<label>w (weight) <input type="range" id="di-w" min="-0.5" max="2" step="0.05" value="0.5"> <span id="di-w-val">0.50</span></label>
-<label>h (distance) <input type="range" id="di-h" min="0.05" max="0.5" step="0.05" value="0.5"> <span id="di-h-val">0.50</span></label>
-<button type="button" id="di-min">Set w = 1.5 (minimum)</button>
-<button type="button" id="di-reset">Reset</button>
-</div>
-<canvas id="di-canvas" width="680" height="360"></canvas>
-<p class="aisw-hint">Blue = loss curve; green dashed = tangent; orange = secant. P is the current weight and Q is a nearby weight. Reduce h to see the secant slope approach the derivative.</p>
-<div id="di-stats" class="aisw-stats"></div>
-<div id="di-explanation" class="aisw-stats"></div>
-</div>
-
-<script>
-(function () {
-  const root = document.getElementById("derivative-intro-widget");
-  if (!root || root.dataset.initialized) return;
-  root.dataset.initialized = "true";
-
-  const canvas = root.querySelector("#di-canvas");
-  const ctx = canvas.getContext("2d");
-  const wInput = root.querySelector("#di-w");
-  const hInput = root.querySelector("#di-h");
-  const wVal = root.querySelector("#di-w-val");
-  const hVal = root.querySelector("#di-h-val");
-  const stats = root.querySelector("#di-stats");
-  const explanation = root.querySelector("#di-explanation");
-
-  // Same running example as Section 3.3: x=2, y=3, b=0.
-  function loss(w) {
-    return (2 * w - 3) ** 2;
-  }
-
-  function derivative(w) {
-    return 8 * w - 12;
-  }
-
-  const xMin = -0.5, xMax = 2.5;
-  const yMin = 0, yMax = 26;
-  const pad = {left: 48, right: 18, top: 18, bottom: 42};
-
-  function toPx(w, L) {
-    return [
-      pad.left + (w - xMin) / (xMax - xMin) *
-        (canvas.width - pad.left - pad.right),
-      canvas.height - pad.bottom - (L - yMin) / (yMax - yMin) *
-        (canvas.height - pad.top - pad.bottom)
-    ];
-  }
-
-  function draw() {
-    const w = parseFloat(wInput.value);
-    const h = Math.min(parseFloat(hInput.value), xMax - w);
-    const q = w + h;
-
-    const L = loss(w);
-    const Lq = loss(q);
-    const grad = derivative(w);
-    const secant = (Lq - L) / h;
-
-    wVal.textContent = w.toFixed(2);
-    hVal.textContent = h.toFixed(2);
-
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-
-    const plotW = W - pad.left - pad.right;
-    const plotH = H - pad.top - pad.bottom;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pad.left, pad.top, plotW, plotH);
-    ctx.clip();
-
-    // Horizontal grid and loss-axis labels.
-    ctx.strokeStyle = "#d9dde5";
-    ctx.lineWidth = 1;
-    ctx.fillStyle = "#5b6475";
-    ctx.font = "11px sans-serif";
-    ctx.textAlign = "right";
-
-    for (let v = 0; v <= 25; v += 5) {
-      const [, py] = toPx(xMin, v);
-      ctx.beginPath();
-      ctx.moveTo(pad.left, py);
-      ctx.lineTo(W - pad.right, py);
-      ctx.stroke();
-      ctx.fillText(String(v), pad.left - 7, py + 4);
-    }
-
-    // Vertical axis at w=0.
-    const [zeroX] = toPx(0, 0);
-    ctx.beginPath();
-    ctx.moveTo(zeroX, pad.top);
-    ctx.lineTo(zeroX, H - pad.bottom);
-    ctx.stroke();
-
-    // Draw the loss curve.
-    ctx.strokeStyle = "#1d4ed8";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-
-    for (let i = 0; i <= 200; i++) {
-      const x = xMin + i / 200 * (xMax - xMin);
-      const [px, py] = toPx(x, loss(x));
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-
-    // Draw tangent and secant lines through P.
-    function drawLine(slope, colour, dashed) {
-      ctx.strokeStyle = colour;
-      ctx.lineWidth = 1.8;
-      ctx.setLineDash(dashed ? [6, 4] : []);
-
-      const [x1, y1] = toPx(
-        xMin, L + slope * (xMin - w)
-      );
-      const [x2, y2] = toPx(
-        xMax, L + slope * (xMax - w)
-      );
-
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    // Green tangent: the exact derivative at the current weight.
-    drawLine(grad, "#16a36b", true);
-
-    // Orange secant: the average slope between P and Q.
-    drawLine(secant, "#d97706", false);
-
-    // Vertical guide to show the horizontal interval h.
-    const [px, py] = toPx(w, L);
-    const [qx, qy] = toPx(q, Lq);
-
-    ctx.strokeStyle = "#d97706";
-    ctx.setLineDash([3, 3]);
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(qx, py);
-    ctx.lineTo(qx, qy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Point P.
-    ctx.fillStyle = "#1f2430";
-    ctx.beginPath();
-    ctx.arc(px, py, 5, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Point Q.
-    ctx.fillStyle = "#d97706";
-    ctx.beginPath();
-    ctx.arc(qx, qy, 5, 0, 2 * Math.PI);
-    ctx.fill();
-
-    ctx.fillStyle = "#1f2430";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("P", px + 8, py - 9);
-    ctx.fillText("Q", qx + 8, qy - 9);
-
-    ctx.restore();
-
-    // Axis labels.
-    ctx.fillStyle = "#5b6475";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Model weight w", pad.left + plotW / 2, H - 8);
-    ctx.textAlign = "left";
-    ctx.fillText("Loss L(w)", pad.left, 12);
-
-    const f = v => v.toFixed(3).replace("-", "−");
-
-    stats.innerHTML =
-      `w = ${f(w)} | L(w) = ${f(L)} | ` +
-      `L(w+h) = ${f(Lq)}<br>` +
-      `Secant slope = [L(w+h) − L(w)] / h = <b>${f(secant)}</b><br>` +
-      `Derivative dL/dw = <b>${f(grad)}</b>`;
-
-    let message;
-    if (Math.abs(grad) < 0.0001) {
-      message = "The derivative is zero: the curve is flat at this point. " +
-        "For this loss function, this is its minimum.";
-    } else if (grad < 0) {
-      message = "The derivative is negative: increasing w locally " +
-        "reduces the loss. Gradient descent will increase w.";
-    } else {
-      message = "The derivative is positive: decreasing w locally " +
-        "reduces the loss. Gradient descent will decrease w.";
-    }
-
-    explanation.textContent = message;
-  }
-
-  wInput.addEventListener("input", draw);
-  hInput.addEventListener("input", draw);
-
-  root.querySelector("#di-min").addEventListener("click", () => {
-    wInput.value = 1.5;
-    draw();
-  });
-
-  root.querySelector("#di-reset").addEventListener("click", () => {
-    wInput.value = 0.5;
-    hInput.value = 0.5;
-    draw();
-  });
-
-  draw();
-})();
-</script>
-
-**What to observe:**
-
-- At $w=0.5$, the derivative is $-8$. Increasing the weight reduces the loss.
-- At $w=1.5$, the derivative is zero. The loss is at its minimum.
-- At $w=2$, the derivative is $+4$. Decreasing the weight reduces the loss.
-
-This is the basic idea behind gradient descent: move the model parameters in the direction opposite to the gradient.
-
-
 Training is a repeated four-step loop:
 
-1. **Forward pass:** feed examples in and compute predictions.
+1. [**Forward pass**](#glossary-forward-pass): feed examples in and compute predictions.
 2. **Loss:** measure how wrong the predictions are.
 3. **Backward pass:** work out how each weight contributed to the error.
 4. **Update:** nudge each weight in the direction that reduces the error.
 
 This loop runs thousands or millions of times until the error stops improving.
 
-> **Running example.** To make the loop concrete, Sections 3.3.1–3.3.4 follow one tiny neuron through every stage with real numbers. The neuron has no activation function, to keep the arithmetic simple: $\hat{y} = wx + b$. It sees a single training example with input $x=2$ and true answer $y=3$. Its weights start at $w=0.5$ and $b=0$, the loss is $\mathcal{L} = (\hat{y}-y)^2$, and the learning rate is $\eta=0.1$. The stepper in Section 3.3.3 lets you replay the whole loop on these numbers.
+> **Running example.** To make the loop concrete, Sections 3.3.1–3.3.4 follow one tiny neuron through every stage with real numbers. The neuron has no activation function, to keep the arithmetic simple: $\hat{y} = wx + b$. It sees a single training example with input $x=2$ and true answer $y=3$. Its weights start at $w=0.5$ and $b=0$, the loss is $\mathcal{L} = (\hat{y}-y)^2$, and the learning rate is [$\eta$](#notation-learning-rate)$=0.1$. The stepper in Section 3.3.3 lets you replay the whole loop on these numbers.
 
 ### 3.3.1 Forward propagation
 
-In **forward propagation**, data enters the input layer and flows through the layers one by one, each applying its weights and activation function, until the output layer produces a prediction. This is the network "making a guess". Forward propagation is also exactly what happens when a trained network is used (this is called **inference**).
+In **forward propagation**, data enters the input layer and flows through the layers one by one, each applying its weights and activation function, until the output layer produces a prediction. This is the network "making a guess". Forward propagation is also exactly what happens when a trained network is used (this is called [**inference**](#glossary-inference)).
 
 > **Running example — stage 1.** Our neuron has a single layer and no activation, so the forward pass is one line:
 > $\hat{y} = w x + b = 0.5 \times 2 + 0 = 1$. The network guesses 1, but the true answer is 3.
@@ -1313,15 +1063,18 @@ In **forward propagation**, data enters the input layer and flows through the la
 
 A **loss function** $\mathcal{L}$ is a score that tells us how wrong a prediction $\hat{y}$ is compared with the true answer $y$. Lower is better. The choice of loss depends on the task:
 
+In the focal-loss expression, [$p_t$](#notation-focal-probability) is the probability assigned to the target class. In the Dice-loss expression, [$A$](#notation-dice-regions) and [$B$](#notation-dice-regions) denote the predicted and target regions.
+
+
 | Task | Loss | Formula / idea |
 |---|---|---|
-| Classification | **Cross-entropy** | $-\sum_c y_c \log \hat{y}_c$ — penalises being confident and wrong |
-| Predicting a number | **MSE** (mean squared error) | $(\hat{y}-y)^2$ — penalises large errors strongly |
-| Predicting a number | **L1** (mean absolute error) | $\lvert\hat{y}-y\rvert$ — less sensitive to outliers |
-| Predicting a number | **Huber / Smooth-L1** | MSE for small errors, L1 for large ones |
-| Bounding boxes | **IoU / GIoU loss** | $1 - \text{IoU}$, where IoU is the overlap between predicted and true box divided by their union |
-| Rare classes | **Focal loss** | $-(1-p_t)^{\gamma}\log p_t$ — down-weights easy examples so rare, hard ones count more |
-| Segmentation | **Dice loss** | $1 - \dfrac{2\lvert A\cap B\rvert}{\lvert A\rvert+\lvert B\rvert}$ — based on the overlap of predicted and true regions |
+| Classification | [**Cross-entropy**](#glossary-loss-function) | $-\sum_c y_c \log \hat{y}_c$ — penalises being confident and wrong |
+| Predicting a number | [**MSE**](#glossary-loss-function) (mean squared error) | $(\hat{y}-y)^2$ — penalises large errors strongly |
+| Predicting a number | [**L1**](#glossary-loss-function) (mean absolute error) | $\lvert\hat{y}-y\rvert$ — less sensitive to outliers |
+| Predicting a number | [**Huber / Smooth-L1**](#glossary-loss-function) | MSE for small errors, L1 for large ones |
+| Bounding boxes | [**IoU / GIoU loss**](#glossary-loss-function) | $1 - \text{IoU}$, where IoU is the overlap between predicted and true box divided by their union |
+| Rare classes | [**Focal loss**](#glossary-loss-function) | $-(1-p_t)^{\gamma}\log p_t$ — down-weights easy examples so rare, hard ones count more |
+| Segmentation | [**Dice loss**](#glossary-loss-function) | $1 - \dfrac{2\lvert A\cap B\rvert}{\lvert A\rvert+\lvert B\rvert}$ — based on the overlap of predicted and true regions |
 
 Focal loss is particularly useful in driving data, where "background" vastly outnumbers objects of interest.
 
@@ -1458,17 +1211,17 @@ The widget below compares three of the "predicting a number" losses for a true a
 })();
 </script>
 
-### 3.3.3 Gradients and backpropagation
+### 3.3.3 [Gradients](#glossary-gradient) and [backpropagation](#glossary-backpropagation)
 
 The **gradient** of the loss with respect to a weight, $\dfrac{\partial \mathcal{L}}{\partial w}$, tells us how the loss changes if that weight is increased slightly. Imagine standing on a hill in thick fog: you cannot see the valley, but you can feel which way the ground slopes. The gradient is that slope, and moving *against* it takes you downhill, towards a lower loss.
 
-**Backpropagation** is the efficient method for computing the gradient of *every* weight in the network. Starting at the loss, it moves backwards layer by layer, using the **chain rule** from calculus: the effect of a weight on the loss is the product of the effects along the path from that weight to the loss. For a weight $w$ feeding a neuron with pre-activation $z$ and output $\hat{y}$:
+**Backpropagation** is the efficient method for computing the gradient of *every* weight in the network. Starting at the loss, it moves backwards layer by layer, using the [**chain rule**](#glossary-chain-rule) from calculus: the effect of a weight on the loss is the product of the effects along the path from that weight to the loss. For a weight $w$ feeding a neuron with pre-activation $z$ and output $\hat{y}$:
 
 $$
 \frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w}
 $$
 
-Deep-learning frameworks such as PyTorch compute this automatically (**automatic differentiation**), so engineers rarely write it by hand.
+Deep-learning frameworks such as PyTorch compute this automatically ([**automatic differentiation**](#glossary-automatic-differentiation)), so engineers rarely write it by hand.
 
 > **Running example — stage 3.** Our neuron has no activation function, so $\hat{y} = z$ and the middle factor is simply 1. Working backwards from the loss $\mathcal{L}=(\hat{y}-y)^2$:
 >
@@ -1675,7 +1428,7 @@ The stepper below runs the four stages of the loop on the running example. Click
 })();
 </script>
 
-### 3.3.4 Gradient descent and the learning rate
+### 3.3.4 [Gradient descent](#glossary-gradient-descent) and the [learning rate](#glossary-learning-rate)
 
 **Gradient descent** repeats the update step: move each parameter a small step *against* its gradient.
 
@@ -1829,7 +1582,7 @@ The **learning rate** $\eta$ is the size of the step:
 })();
 </script>
 
-### 3.3.5 Mini-batches and Stochastic Gradient Descent (SGD)
+### 3.3.5 [Mini-batches](#glossary-sgd) and [Stochastic Gradient Descent (SGD)](#glossary-sgd)
 
 Computing the gradient over the *entire* dataset for every single step is too slow for large datasets. Instead, we use a small random subset — a **mini-batch**, typically 16 to 512 examples — to estimate the gradient. This is **Stochastic Gradient Descent (SGD)**. Each step is a little noisy, but steps are much cheaper, and the noise even helps the network avoid poor solutions.
 
@@ -1841,7 +1594,9 @@ Some vocabulary:
 
 ### 3.3.6 Optimisation algorithms
 
-An **optimiser** is the rule that turns gradients into parameter updates. Plain SGD is the starting point, and the others improve on it.
+An [**optimiser**](#glossary-optimiser) is the rule that turns gradients into parameter updates. Plain SGD is the starting point, and the others improve on it.
+
+In the update rules below, [$g$](#notation-gradient) denotes the current gradient used to calculate a parameter update.
 
 | Optimiser | Idea in plain words | Update rule (simplified) |
 |---|---|---|
@@ -1849,11 +1604,11 @@ An **optimiser** is the rule that turns gradients into parameter updates. Plain 
 | **SGD with momentum** | Like a rolling ball that keeps some speed from previous steps; it smooths out noise and rolls through small bumps. | $v \leftarrow \beta v + g$; $\theta \leftarrow \theta - \eta\, v$ |
 | **RMSprop** | Gives each parameter its own step size: parameters with consistently large gradients take smaller steps. | $s \leftarrow \rho s + (1-\rho)g^2$; $\theta \leftarrow \theta - \eta\,\dfrac{g}{\sqrt{s}+\epsilon}$ |
 | **Adam** | Combines momentum (average direction) with RMSprop (per-parameter step size). The most common default. | $m \leftarrow \beta_1 m + (1-\beta_1)g$; $s \leftarrow \beta_2 s + (1-\beta_2)g^2$; $\theta \leftarrow \theta - \eta\,\dfrac{\hat{m}}{\sqrt{\hat{s}}+\epsilon}$ |
-| **AdamW** | Adam with weight decay (Section 3.4.4) applied correctly, as a separate step. Widely used for transformers. | Adam update plus $-\eta\lambda\theta$ |
+| **AdamW** | Adam with [weight decay](#glossary-regularisation) (Section 3.4.4) applied correctly, as a separate step. Widely used for transformers. | Adam update plus $-\eta\lambda\theta$ |
 
 > **Rule of thumb:** Adam/AdamW usually works well with little tuning, which makes it a good first choice. SGD with momentum often needs more tuning but is still popular for training CNNs.
 
-### 3.3.7 Learning-rate schedules
+### 3.3.7 [Learning-rate schedules](#glossary-learning-rate-schedule)
 
 The best learning rate is not constant during training: large steps are useful at the start, and small steps are better at the end for settling precisely into a good solution. A **schedule** changes $\eta$ over time:
 
@@ -1862,7 +1617,7 @@ The best learning rate is not constant during training: large steps are useful a
 - **Warm-up:** start with a very small $\eta$ and increase it over the first few iterations, which avoids unstable early steps.
 - **One-cycle:** warm up to a maximum and then anneal down to near zero.
 
-### 3.3.8 Gradient clipping
+### 3.3.8 [Gradient clipping](#glossary-gradient-clipping)
 
 Occasionally a gradient becomes unusually large and would throw the weights far off course. **Gradient clipping** caps its size: if the length of the gradient $\lVert g \rVert$ exceeds a threshold $c$, the gradient is scaled down:
 
@@ -1872,7 +1627,7 @@ $$
 
 It is especially common when training recurrent networks and transformers.
 
-### 3.3.9 Mixed-precision training
+### 3.3.9 [Mixed-precision training](#glossary-mixed-precision)
 
 Numbers in a computer can be stored with different precision: 32 bits (FP32) or 16 bits (FP16 or BF16). **Mixed-precision training** uses the smaller 16-bit numbers for most calculations and keeps 32-bit numbers where precision matters. This makes training faster and uses about half the memory, with little or no loss in quality. (Using lower precision *after* training, to make models smaller and faster on vehicle hardware, is called quantisation and is covered in Chapter 6.)
 
@@ -1892,7 +1647,7 @@ The available data is split into three separate piles:
 
 The test set must stay untouched during development; otherwise the final score is no longer an honest estimate of performance on new data.
 
-### 3.4.2 Overfitting and underfitting
+### 3.4.2 [Overfitting](#glossary-overfitting) and [underfitting](#glossary-overfitting)
 
 - **Underfitting:** the model is too simple (or trained too little) to learn the pattern. It performs poorly on both training and validation data.
 - **Overfitting:** the model learns the training examples — including their noise and accidents — by heart, instead of the general idea. It performs very well on training data but poorly on validation data. It is like a student who memorises past exam answers without understanding the subject.
@@ -1906,19 +1661,19 @@ A **learning curve** plots the training loss and the validation loss against the
 | What you see | What it means | What to try |
 |---|---|---|
 | Both losses high | Underfitting | Larger model, train longer, higher learning rate |
-| Training loss low, validation loss high (a gap) | Overfitting | More data, augmentation, regularisation, smaller model |
+| Training loss low, validation loss high (a gap) | Overfitting | More data, augmentation, [regularisation](#glossary-regularisation), smaller model |
 | Both losses low and close together | Good fit | Done (or fine-tune) |
-| Validation loss starts to rise while training loss keeps falling | Overfitting has begun | Early stopping |
+| Validation loss starts to rise while training loss keeps falling | Overfitting has begun | [Early stopping](#glossary-regularisation) |
 
 ### 3.4.4 Regularisation
 
 **Regularisation** is a family of techniques that deliberately make it harder for the network to memorise, so that it learns the general pattern.
 
-- **L2 regularisation / weight decay.** Add a penalty for large weights to the loss: $\mathcal{L}_{total} = \mathcal{L} + \lambda \lVert \mathbf{w}\rVert_2^2$. Large weights are discouraged, which keeps the model simpler and smoother. $\lambda$ controls the strength.
+- [**L2 regularisation**](#glossary-regularisation) / [**weight decay**](#glossary-regularisation). Add a penalty for large weights to the loss: $\mathcal{L}_{total} = \mathcal{L} + \lambda \lVert \mathbf{w}\rVert_2^2$. Large weights are discouraged, which keeps the model simpler and smoother. [$\lambda$](#notation-weight-decay) controls the strength.
 - **L1 regularisation.** Penalty $\lambda \lVert \mathbf{w}\rVert_1$ (sum of absolute values). It pushes many weights to exactly zero, which gives sparser models.
-- **Dropout.** During training, each neuron is randomly switched off with probability $p$ (e.g. 0.5) in every step. The network cannot rely on any single neuron, so it learns more robust, redundant features. At inference time, all neurons are used.
-- **Data augmentation.** Create extra, slightly different training examples from the existing ones — flipping, cropping, changing brightness, adding noise. The network sees more variety without more data collection. Covered in detail in Chapter 11.
-- **Early stopping.** Monitor the validation loss and stop training when it stops improving, keeping the best version of the model.
+- [**Dropout**](#glossary-regularisation). During training, each neuron is randomly switched off with probability $p$ (e.g. 0.5) in every step. The network cannot rely on any single neuron, so it learns more robust, redundant features. At inference time, all neurons are used.
+- [**Data augmentation**](#glossary-data-augmentation). Create extra, slightly different training examples from the existing ones — flipping, cropping, changing brightness, adding noise. The network sees more variety without more data collection. Covered in detail in Chapter 11.
+- [**Early stopping**](#glossary-regularisation). Monitor the validation loss and stop training when it stops improving, keeping the best version of the model.
 - **Label smoothing.** Instead of telling the network "this is 100% a car", train with "this is 90% a car". This stops the network from becoming over-confident.
 - **Stochastic depth.** Randomly skip entire residual blocks during training (a "dropout for layers"), used in very deep networks.
 
@@ -1981,14 +1736,14 @@ Image -> [Conv+ReLU] -> [Pool] -> [Conv+ReLU] -> [Pool] -> ... -> [MLP head] -> 
 | Network | Key idea |
 |---|---|
 | **LeNet** | Early CNN for digit recognition; showed the basic recipe |
-| **ResNet** | Residual connections (Section 3.2.8) allow networks with 50–150+ layers; very common backbone |
+| **ResNet** | Residual connections (Section 3.2.8) allow networks with 50–150+ layers; very common [backbone](#glossary-backbone-neck-head) |
 | **EfficientNet** | Scales depth, width and image size together for good accuracy at low cost |
-| **YOLO** | "You Only Look Once" — a CNN that predicts boxes and classes for all objects in a single pass; fast (used in Chapter 2's Lab 1) |
+| [**YOLO**](#glossary-yolo) | "You Only Look Once" — a CNN that predicts boxes and classes for all objects in a single pass; fast (used in Chapter 2's Lab 1) |
 | **U-Net / FCN** | CNNs whose output is an image of the same size, used for segmentation (labelling every pixel) |
 
 **In vehicles.** Object detection, traffic-sign classification, lane detection, semantic segmentation, and the image feature extractors inside larger systems.
 
-### 3.5.3 Recurrent Networks: RNN, LSTM and GRU
+### 3.5.3 Recurrent Networks: [RNN](#glossary-rnn), [LSTM](#glossary-rnn) and [GRU](#glossary-rnn)
 
 **Idea.** A network with **memory**, designed for sequences — data where order matters, such as video frames, or the positions of a vehicle over time.
 
@@ -2010,9 +1765,9 @@ Plain RNNs struggle to remember things over long sequences (the vanishing-gradie
 
 **Limits.** Because they process one step after another, recurrent networks are slow to train and still find very long sequences hard. For many sequence tasks they have been largely replaced by transformers (Section 3.5.5), but they remain common in smaller, lightweight models.
 
-### 3.5.4 Encoder–Decoder Networks and Autoencoders
+### 3.5.4 [Encoder–Decoder Networks](#glossary-encoder-decoder) and [Autoencoders](#glossary-encoder-decoder)
 
-**Idea.** Split a network into two halves. The **encoder** compresses the input into a short summary (called the **latent representation** or *bottleneck*); the **decoder** expands that summary into the desired output.
+**Idea.** Split a network into two halves. The **encoder** compresses the input into a short summary (called the [**latent representation**](#glossary-encoder-decoder) or *bottleneck*); the **decoder** expands that summary into the desired output.
 
 ```
 Input -> [ Encoder ] -> compact summary (latent) -> [ Decoder ] -> Output
@@ -2032,9 +1787,9 @@ Input -> [ Encoder ] -> compact summary (latent) -> [ Decoder ] -> Output
 
 **How it works.**
 
-1. The input is split into pieces called **tokens** — for a sentence, words; for an image, small patches (for example $16\times16$ pixels); for a driving scene, objects, map elements or BEV cells.
-2. Each token is converted into a vector. Because attention itself has no sense of order or position, a **positional encoding** is added so that the model knows where each token is.
-3. **Self-attention** (Section 3.2.9) lets every token gather information from every other token:
+1. The input is split into pieces called [**tokens**](#glossary-transformer) — for a sentence, words; for an image, small patches (for example $16\times16$ pixels); for a driving scene, objects, map elements or BEV cells.
+2. Each token is converted into a vector. Because attention itself has no sense of order or position, a [**positional encoding**](#glossary-transformer) is added so that the model knows where each token is.
+3. [**Self-attention**](#glossary-attention-patterns) (Section 3.2.9) lets every token gather information from every other token:
 
 $$
 \text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
@@ -2043,10 +1798,10 @@ $$
    - $Q$ (queries), $K$ (keys) and $V$ (values) are all computed from the tokens by learned weights.
    - $QK^\top$ measures how relevant each token is to each other token.
    - Softmax turns relevance scores into weights that sum to 1, and the output is the weighted mix of values.
-4. **Multi-head attention** runs several attention operations in parallel, so that different "heads" can look for different kinds of relationships.
+4. [**Multi-head attention**](#glossary-attention-patterns) runs several attention operations in parallel, so that different "heads" can look for different kinds of relationships.
 5. Each attention step is followed by a small MLP, with residual connections and LayerNorm around both. This **transformer block** is stacked many times.
 
-**Self-attention vs. cross-attention.** In *self-attention*, queries, keys and values all come from the same data. In *cross-attention*, queries come from one source and keys and values from another — for example, queries from a BEV grid and keys and values from camera images (Section 3.5.7).
+**Self-attention vs. cross-attention.** In *self-attention*, queries, keys and values all come from the same data. In [*cross-attention*](#glossary-attention-patterns), queries come from one source and keys and values from another — for example, queries from a BEV grid and keys and values from camera images (Section 3.5.7).
 
 **Well-known examples.**
 
@@ -2062,7 +1817,7 @@ $$
 
 ### 3.5.6 Point-Cloud Networks: PointNet and PointPillars
 
-**The data.** A LiDAR sensor measures distances with laser pulses and produces a **point cloud**: a list of 3D points, each with a position $(x,y,z)$ and usually a reflection intensity $r$. This is very different from an image:
+**The data.** A [LiDAR](#glossary-point-cloud) sensor measures distances with laser pulses and produces a [**point cloud**](#glossary-point-cloud): a list of 3D points, each with a position $(x,y,z)$ and usually a reflection intensity $r$. This is very different from an image:
 
 - It is **unordered** (shuffling the list does not change the scene).
 - It is **sparse** (most of space is empty).
@@ -2084,13 +1839,13 @@ Standard CNNs expect a regular grid, so point clouds need a different approach.
 Point cloud -> Pillars -> PointNet per pillar -> Pseudo-image -> 2D CNN -> 3D boxes
 ```
 
-**Related networks.** **SECOND** (uses 3D sparse convolutions on voxels) and **CenterPoint** (detects objects as centre points on a BEV grid, then regresses box size and orientation) are other widely used LiDAR detectors.
+**Related networks.** **SECOND** (uses 3D sparse convolutions on [voxels](#glossary-point-cloud)) and **CenterPoint** (detects objects as centre points on a BEV grid, then regresses box size and orientation) are other widely used LiDAR detectors.
 
 **In vehicles.** 3D object detection from LiDAR: finding the position, size and heading of cars, pedestrians and cyclists.
 
 ### 3.5.7 Bird's-Eye-View (BEV) Networks
 
-**Idea.** A **bird's-eye view (BEV)** is a top-down map of the surroundings, as if seen from a drone hovering above the vehicle. In this view, distances and positions can be read directly, objects do not appear larger or smaller depending on how close they are, and data from several sensors can be placed in one common frame. This makes BEV a natural "common language" for perception, prediction and planning.
+**Idea.** A [**bird's-eye view (BEV)**](#glossary-bev) is a top-down map of the surroundings, as if seen from a drone hovering above the vehicle. In this view, distances and positions can be read directly, objects do not appear larger or smaller depending on how close they are, and data from several sensors can be placed in one common frame. This makes BEV a natural "common language" for perception, prediction and planning.
 
 **The challenge.** Cameras see the world in a perspective view, not top-down, and a single camera image does not tell how far away things are. A BEV network must therefore convert from camera images to the top-down map.
 
@@ -2127,10 +1882,12 @@ Most modern perception networks, whatever the task, are built from the same thre
 | Part | Role | Typical building blocks |
 |---|---|---|
 | **Backbone** | Reads the raw input and extracts features | ResNet, EfficientNet, ViT; PointPillars encoder for LiDAR |
-| **Neck** | Combines features from different depths or scales, so that both small (far-away) and large (nearby) objects are handled | Feature Pyramid Network (FPN), PAN, BEV view transform |
-| **Head** | Produces the final task output | Detection head (boxes + classes), segmentation head (per-pixel labels), regression head |
+| [**Neck**](#glossary-backbone-neck-head) | Combines features from different depths or scales, so that both small (far-away) and large (nearby) objects are handled | [Feature Pyramid Network (FPN)](#glossary-backbone-neck-head), [PAN](#glossary-backbone-neck-head), BEV view transform |
+| [**Head**](#glossary-backbone-neck-head) | Produces the final task output | Detection head (boxes + classes), segmentation head (per-pixel labels), regression head |
 
 ### Worked example: a YOLO-style camera detector
+
+The detector's final post-processing step can use [**Non-Maximum Suppression (NMS)**](#glossary-nms) to remove duplicate overlapping detections.
 
 ```
 Input image            3 × 640 × 640
@@ -2151,7 +1908,7 @@ Final detections       e.g. "car, 92%, box (…)"
 Every item from this chapter appears:
 
 - **Building blocks** (Section 3.2): convolutions, normalisation, activations, residual connections.
-- **Training mechanics** (Section 3.3): a loss that combines box-overlap (IoU), objectness and classification terms, minimised with an optimiser and a learning-rate schedule.
+- **Training mechanics** (Section 3.3): a loss that combines box-overlap (IoU), [objectness](#glossary-objectness) and classification terms, minimised with an optimiser and a learning-rate schedule.
 - **Generalisation** (Section 3.4): data augmentation, weight decay and early stopping; hyperparameters chosen using a validation set.
 
 The same backbone–neck–head pattern also describes a PointPillars detector (the pillar encoder and 2D CNN form the backbone, and an SSD-style head produces 3D boxes) and a BEV network (image backbone and view transform, then BEV heads).
@@ -2213,3 +1970,119 @@ Different data types call for different architectures: MLPs for vectors, CNNs fo
 - Li, Z. et al. — *BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers*.
 - Liu, Z. et al. — *BEVFusion: Multi-Task Multi-Sensor Fusion with Unified Bird's-Eye View Representation*.
 - Gao, J. et al. — *VectorNet: Encoding HD Maps and Agent Dynamics from Vectorized Representation*.
+
+## Glossary and notation
+
+The glossary definitions below are **paraphrases**, not verbatim quotations. The source column distinguishes three cases:
+
+- **Standard definition (paraphrased):** the cited clause contains a definition of the term or a directly equivalent term.
+- **Standard context only:** the standard discusses or gives an example of the concept, but does not define the glossary term itself.
+- **No formal definition identified:** the selected standards do not define the term. The short explanatory description is retained for teaching purposes and must not be presented as an ISO/IEC definition.
+
+Clause references identify the relevant entry or technical discussion; they are not requirement numbers unless explicitly stated. The mathematical notation section is retained as chapter-specific notation and is not attributed to a standard.
+
+### Neural-network fundamentals
+
+| Term | Definition (paraphrased) | Standard source / status |
+|---|---|---|
+| <span id="glossary-neural-network"><strong>Neural network</strong></span> | A network of one or more layers of neurons connected through weighted links, with adjustable weights, that receives input data and produces an output. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.8](https://www.iso.org/standard/74296.html). Also defined for the robustness context in [ISO/IEC TR 24029-1:2021, 3.4](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso-iec%3Atr%3A24029%3A-1%3Aed-1%3Av1%3Aen). |
+| <span id="glossary-model-architecture"><strong>Model architecture</strong></span> | In this chapter, the architecture is the arrangement of a model's computational elements and their connections, which determines how information is transformed from input to output. | **Standard context only:** [ISO/PAS 8800:2024, 6.3–6.4](https://www.iso.org/standard/83303.html) discusses abstraction layers and an example AI-system architecture. The selected standards do not provide a standalone Clause 3 definition of *model architecture*. |
+| <span id="glossary-linear-regression"><strong>Linear regression</strong></span> | A machine-learning method that determines the intercept and weights of a linear function relating an input to a numerical output. | **Standard context only:** [ISO/PAS 8800:2024, 3.1.30](https://www.iso.org/standard/83303.html) uses a trained univariate linear function as an example when describing an ML algorithm; it does not provide a separate glossary definition of *linear regression*. |
+| <span id="glossary-model-parameters"><strong>Model parameters, weights and biases</strong></span> | A model parameter is an internal variable that affects how the model computes its outputs. Neural-network weights are an explicit example; this chapter also treats the bias values in its equations as model parameters. | **Standard definition:** [ISO/IEC 22989:2022, 3.3.8](https://www.iso.org/standard/74296.html). The standard explicitly gives neural-network weights as an example; the grouping with biases follows the chapter's model equations. |
+| <span id="glossary-neuron"><strong>Neuron</strong></span> | A primitive processing element that combines one or more input values and applies an activation function to produce an output value. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.9](https://www.iso.org/standard/74296.html). |
+| <span id="glossary-activation-function"><strong>Activation function</strong></span> | A function applied to the weighted combination of a neuron's inputs. Activation functions are typically nonlinear and allow a neural network to learn more complex features. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.1](https://www.iso.org/standard/74296.html). The standard defines the general term, not each named function (ReLU, sigmoid, tanh, GELU or SiLU). |
+| <span id="glossary-layer"><strong>Layer</strong></span> | A stage in a neural network. In the chapter's examples, layers receive inputs, apply a transformation and pass their outputs to the next stage. | **Standard context only:** [ISO/IEC 22989:2022, 3.4.8](https://www.iso.org/standard/74296.html) describes neural networks as comprising one or more layers of neurons, but the selected standards do not give a separate definition of *layer*. |
+| <span id="glossary-deep-learning"><strong>Deep learning</strong></span> | An approach that learns hierarchical representations by training neural networks with many hidden layers; it is a subset of machine learning. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.4](https://www.iso.org/standard/74296.html). |
+
+### Network operations and components
+
+| Term | Definition (paraphrased) | Standard source / status |
+|---|---|---|
+| <span id="glossary-convolution"><strong>Convolution, filter, kernel, feature map, stride and padding</strong></span> | Convolution is a mathematical operation that applies a sliding dot product or cross-correlation to input data. In this chapter, *filter/kernel* refers to the values applied in the sliding operation; the resulting responses are shown as a *feature map*. *Stride* is the step between positions, and *padding* adds values around the input boundary. | **Standard definition for convolution only:** [ISO/IEC 22989:2022, 3.4.3](https://www.iso.org/standard/74296.html). **Not separately defined in the selected standards:** filter/kernel, feature map, stride and padding; their explanations are retained as educational descriptions. |
+| <span id="glossary-pooling"><strong>Pooling</strong></span> | An operation that summarises values in a local region of a feature map, often reducing its spatial dimensions. Max pooling retains the largest value in each region. | **No formal definition identified** in the selected standards. This is an educational description of a common CNN operation. |
+| <span id="glossary-normalisation"><strong>Normalisation layers (BatchNorm and LayerNorm)</strong></span> | Layers that transform activation values using statistics of a batch or of an individual example. Batch Normalisation uses batch-level statistics; Layer Normalisation uses statistics across the features of an example. | **No formal definition identified** in the selected standards. The description is an educational summary; BatchNorm and LayerNorm are not separately defined in the cited standards. |
+| <span id="glossary-weight-initialisation"><strong>Weight initialisation</strong></span> | The procedure for assigning initial values to a model's learnable weights before training. Xavier/Glorot and He are named initialisation methods discussed in this chapter. | **No formal definition identified** in the selected standards. The selected standards' model-parameter and training terminology does not define initialisation methods. |
+| <span id="glossary-residual-connection"><strong>Residual or skip connection</strong></span> | A network connection that adds a block's input to the block's transformed output, creating a shorter information path through the network. | **No formal definition identified** in the selected standards. This is an architectural concept explained in the chapter; see the ResNet paper in Further Reading. |
+| <span id="glossary-attention"><strong>Attention, query, key and value</strong></span> | Attention assigns different importance to parts of an input when computing an output. In the query–key–value formulation, a query is compared with keys to calculate weights, and those weights are used to combine values. | **No published definition identified in the selected edition.** A definition of *attention* appears in proposed [ISO/IEC 22989:2022/FDAmd 1, 3.3.18](https://www.iso.org/standard/88145.html), which is still under approval as of 20 November 2026 and is therefore not cited here as a published standard. Query, key and value are not separately defined in the selected standards. |
+
+### Training and optimisation
+
+| Term | Definition (paraphrased) | Standard source / status |
+|---|---|---|
+| <span id="glossary-hyperparameter"><strong>Hyperparameter</strong></span> | A parameter of the AI technology that affects model performance and the learning process. Hyperparameters are selected before training and can be used to help determine model parameters. | **Standard definition:** [ISO/PAS 8800:2024, 3.1.27](https://www.iso.org/standard/83303.html). |
+| <span id="glossary-forward-pass"><strong>Forward pass or forward propagation</strong></span> | The calculation that carries input values through successive network operations to produce an output or prediction. | **No separate definition identified** for *forward pass/forward propagation*. **Standard context only:** [ISO/IEC 22989:2022, 3.4.6](https://www.iso.org/standard/74296.html) defines a feed-forward neural network as one in which information flows from input to output in one direction. |
+| <span id="glossary-inference"><strong>Inference</strong></span> | Reasoning by which conclusions are derived from known premises. In AI, the premises can include facts, rules, models, features or raw data; in this chapter, the term is used for obtaining an output from a trained model. | **Standard definition:** [ISO/IEC 22989:2022, 3.1.17](https://www.iso.org/standard/74296.html). For the output of an AI system, see also *prediction* in ISO/IEC 22989:2022, 3.1.27. |
+| <span id="glossary-loss-function"><strong>Loss function and common losses</strong></span> | In this chapter, a loss function is the numerical measure used during training to express the discrepancy between a model's output and the target. The chapter introduces cross-entropy, MSE, L1, Huber/Smooth-L1, IoU/GIoU, focal and Dice losses. | **No formal definition identified** for *loss function* or the listed loss variants in the selected standards. **Standard context only:** [ISO/PAS 8800:2024, 3.1.32](https://www.iso.org/standard/83303.html) refers to a cost function as an object that an ML algorithm can adapt during model training. |
+| <span id="glossary-gradient"><strong>Gradient</strong></span> | The collection of partial derivatives of a quantity, such as the loss, with respect to model parameters. It indicates how that quantity changes locally as the parameters change. | **No general definition identified** in the selected standards. [ISO/IEC 22989:2022, 3.4.5](https://www.iso.org/standard/74296.html) defines *exploding gradient*, a related training phenomenon, but not the general term *gradient*. |
+| <span id="glossary-backpropagation"><strong>Backpropagation</strong></span> | A neural-network training method that uses the error at the output layer to adjust the weights of connections in preceding layers. | **Standard definition:** [ISO/IEC 23053:2022, 3.2.1](https://www.iso.org/standard/74438.html). |
+| <span id="glossary-chain-rule"><strong>Chain rule</strong></span> | A calculus rule for differentiating a composition of functions. In neural-network training, it allows derivatives to be combined across successive operations. | **No formal definition identified** in the selected standards. This is a mathematical concept used to explain backpropagation. |
+| <span id="glossary-automatic-differentiation"><strong>Automatic differentiation</strong></span> | A computational technique that evaluates derivatives by applying differentiation rules to the operations in a program. | **No formal definition identified** in the selected standards. This is a supporting computational technique described in the chapter. |
+| <span id="glossary-gradient-descent"><strong>Gradient descent</strong></span> | An iterative optimisation method that updates model parameters using the loss gradient, generally moving in the direction that reduces the loss. | **No standalone definition identified** for *gradient descent*. **Standard context only:** [ISO/IEC 23053:2022, 3.2.2](https://www.iso.org/standard/74438.html) defines learning rate as the step size for a gradient method. |
+| <span id="glossary-learning-rate"><strong>Learning rate</strong></span> | The step size used by a gradient-based method. For neural networks, it is an important hyperparameter influencing whether and how quickly training converges. | **Standard definition:** [ISO/IEC 23053:2022, 3.2.2](https://www.iso.org/standard/74438.html). |
+| <span id="glossary-sgd"><strong>Mini-batch and stochastic gradient descent (SGD)</strong></span> | A mini-batch is a subset of training examples used for one update. SGD estimates an update from one example or a subset of examples rather than using the complete training dataset for every update. | **No formal definition identified** for *mini-batch* or *SGD* in the selected standards. ISO/IEC 23053:2022, Clause 7 describes ML learning approaches, but does not provide a definition for these two terms. |
+| <span id="glossary-optimiser"><strong>Optimiser</strong></span> | An algorithm that uses gradients to determine updates to model parameters. Examples discussed in this chapter include SGD with momentum, Adam and AdamW. | **No formal definition identified** in the selected standards. The entry is a chapter-level explanation of a common training component. |
+| <span id="glossary-learning-rate-schedule"><strong>Learning-rate schedule</strong></span> | A rule that changes the learning rate during training, for example by reducing it as training progresses. | **No formal definition identified** in the selected standards. |
+| <span id="glossary-gradient-clipping"><strong>Gradient clipping</strong></span> | A training technique that limits gradient magnitude or norm before an optimisation update, reducing the effect of unusually large gradients. | **No formal definition identified** in the selected standards. |
+| <span id="glossary-mixed-precision"><strong>Mixed-precision training</strong></span> | Training that uses more than one numerical precision, commonly using lower precision for selected computations while retaining higher precision where needed. | **No formal definition identified** in the selected standards. |
+
+### Generalisation and regularisation
+
+| Term | Definition (paraphrased) | Standard source / status |
+|---|---|---|
+| <span id="glossary-generalisation"><strong>Generalisation</strong></span> | The ability of a trained model to make correct predictions on input data that it has not previously seen. | **Standard definition:** [ISO/IEC 23053:2022, 3.1.3](https://www.iso.org/standard/74438.html). Automotive AI-specific wording is also given in [ISO/PAS 8800:2024, 3.1.5](https://www.iso.org/standard/83303.html). |
+| <span id="glossary-overfitting"><strong>Overfitting and underfitting</strong></span> | Overfitting describes a model that fits its training data too closely and consequently fails to generalise well to new data. Underfitting describes a model that does not fit the training data sufficiently and therefore also produces incorrect predictions on new data. | **Standard definitions:** [ISO/IEC 23053:2022, 3.1.4 and 3.1.5](https://www.iso.org/standard/74438.html). |
+| <span id="glossary-regularisation"><strong>Regularisation, dropout, weight decay and early stopping</strong></span> | In this chapter, regularisation refers to techniques used to reduce overfitting and improve performance on unseen data. Dropout, weight decay and early stopping are examples of such techniques. | **No formal definitions identified** for these terms in the selected standards. The descriptions are educational summaries, not ISO/IEC definitions. |
+| <span id="glossary-data-augmentation"><strong>Data augmentation</strong></span> | Creating modified versions of training examples, for example through geometric or appearance transformations, to increase the variety of examples used during training. | **No standalone definition identified** in the selected standards. The selected documents address dataset development and lifecycle activities (e.g. [ISO/PAS 8800:2024, Clause 11](https://www.iso.org/standard/83303.html)), but this entry is an educational explanation rather than a paraphrase of a defined term. |
+
+### Architecture families and perception
+
+| Term | Definition (paraphrased) | Standard source / status |
+|---|---|---|
+| <span id="glossary-mlp"><strong>Multi-layer perceptron (MLP)</strong></span> | A feed-forward neural-network architecture arranged in an input layer, one or more hidden layers and an output layer. | **No separate MLP definition identified** in the selected standards. [ISO/IEC 22989:2022, 3.4.6 and 3.4.8](https://www.iso.org/standard/74296.html) provide related definitions for feed-forward neural networks and neural networks, but do not define *MLP* in the cited entries. |
+| <span id="glossary-cnn"><strong>Convolutional neural network (CNN)</strong></span> | A feed-forward neural network that uses convolution in at least one of its layers. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.2](https://www.iso.org/standard/74296.html). |
+| <span id="glossary-rnn"><strong>Recurrent neural network (RNN), LSTM and GRU</strong></span> | An RNN feeds information from a previous processing step into the current step. LSTM is a type of RNN intended to handle both short- and long-span dependencies. GRU is another gated RNN variant discussed in this chapter. | **Standard definitions:** [ISO/IEC 22989:2022, 3.4.10 (RNN) and 3.4.7 (LSTM)](https://www.iso.org/standard/74296.html). **No separate GRU definition identified** in the selected standards; the GRU description is educational. |
+| <span id="glossary-encoder-decoder"><strong>Encoder–decoder, autoencoder and latent representation</strong></span> | An encoder maps input data to an internal representation; a decoder maps that representation to an output. An autoencoder is trained to reconstruct its input, using the intermediate representation as a compact encoding. | **No formal definitions identified** in the selected standards. The entry is an educational explanation of common architecture patterns. |
+| <span id="glossary-transformer"><strong>Transformer and tokens</strong></span> | A Transformer is a neural-network architecture built around attention mechanisms. It operates on a sequence of tokens, which can represent words, image patches or other input units depending on the application. | **No published Transformer or token definition identified** in the selected editions. A token definition is proposed in [ISO/IEC 22989:2022/FDAmd 1, 3.1.41](https://www.iso.org/standard/88145.html), which remains under approval as of 20 November 2026 and is not treated here as a published definition. |
+| <span id="glossary-attention-patterns"><strong>Positional encoding, self-attention, cross-attention and multi-head attention</strong></span> | Positional encoding adds information about sequence order or position. Self-attention relates elements within one input sequence; cross-attention relates elements from different inputs; multi-head attention computes several attention relationships in parallel. | **No formal definitions identified** for these variants in the selected published standards. The proposed [ISO/IEC 22989:2022/FDAmd 1, 3.3.18](https://www.iso.org/standard/88145.html) addresses *attention* generally but remains under approval, not a published standard definition. |
+| <span id="glossary-point-cloud"><strong>Point cloud, LiDAR and voxels</strong></span> | A point cloud is a set of points represented in three-dimensional space. LiDAR is a sensing technology that uses laser light to measure distances; a voxel is a volumetric cell used to discretise 3D space. | **No formal definitions identified** in the selected standards for these three terms in the context used here. The descriptions are explanatory; the selected standards do not define this architecture-specific vocabulary. |
+| <span id="glossary-bev"><strong>Bird's-eye view (BEV)</strong></span> | A top-down spatial representation around a vehicle. Information from camera, LiDAR or other sensors can be transformed into this representation and combined. | **No formal definition identified** in the selected standards. This is an explanatory term used in automotive perception literature. |
+| <span id="glossary-backbone-neck-head"><strong>Backbone, neck and head</strong></span> | Common functional stages in a perception network: the backbone extracts features, the neck combines or redistributes features, and the head produces task-specific outputs. | **No formal definitions identified** in the selected standards. These are architecture-convention terms used in computer-vision literature. |
+| <span id="glossary-yolo"><strong>You Only Look Once (YOLO)</strong></span> | A family of object-detection architectures that predict object locations and classes in a single network evaluation. | **No formal definition identified** in the selected standards. This is the name and concept of a research architecture; the original YOLO paper is listed in Further Reading. |
+| <span id="glossary-nms"><strong>Non-Maximum Suppression (NMS)</strong></span> | A post-processing operation that suppresses low-relevance or duplicate bounding-box candidates, typically retaining the higher-scoring detection. | **Standard context only:** [ISO/PAS 8800:2024, 3.1.9](https://www.iso.org/standard/83303.html) gives non-maximum suppression as an example of AI post-processing and describes its use to remove low-relevance and duplicate bounding boxes. It does not provide a standalone definition of *NMS*. |
+| <span id="glossary-objectness"><strong>Objectness</strong></span> | A detector output or score estimating whether a candidate region contains an object, distinct from the predicted object class. | **No formal definition identified** in the selected standards. This is a detector-specific explanatory term. |
+
+### Standards reviewed and scope notes
+
+The references below are standards-level sources for the entries above. The glossary uses only clauses that directly define a term or explicitly discuss the concept; it does not infer a definition merely because a standard is relevant to AI safety in general.
+
+- [ISO/IEC 22989:2022 — Artificial intelligence concepts and terminology](https://www.iso.org/standard/74296.html): the primary terminology source for neural networks, neurons, activation functions, convolution, deep learning, parameters, RNNs and LSTMs.
+- [ISO/IEC 23053:2022 — Framework for AI systems using machine learning](https://www.iso.org/standard/74438.html): the source for backpropagation, learning rate, generalisation, overfitting and underfitting. It was included as an additional relevant standard because it was identified during the preceding discussion.
+- [ISO/PAS 8800:2024 — Road vehicles — Safety and artificial intelligence](https://www.iso.org/standard/83303.html): the source for hyperparameters and AI-specific generalisation; it also provides context for model architecture, linear regression, cost functions, and NMS as an AI post-processing example.
+- [ISO/IEC TR 24029-1:2021 — Assessment of the robustness of neural networks — Part 1: Overview](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso-iec%3Atr%3A24029%3A-1%3Aed-1%3Av1%3Aen): relevant to neural networks and robustness terminology. Part 2, [ISO/IEC 24029-2:2023](https://www.iso.org/standard/79804.html), is a methodology for applying formal methods to assess neural-network robustness; it is not used as a source for the architecture definitions in this chapter.
+- [ISO/IEC TR 5469:2024 — Functional safety and AI systems](https://www.iso.org/standard/81283.html): its Clause 3 uses the terminology in ISO/IEC 22989 and adds functional-safety concepts. Those safety terms are more appropriate to the later safety chapters than to this neural-network architecture glossary.
+- [ISO/TR 4804:2020 — Safety and cybersecurity for automated driving systems](https://www.iso.org/standard/80363.html) is withdrawn and has been superseded by [ISO/TS 5083:2025](https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/19/81920.html). These documents address automated-driving-system safety, verification and validation, rather than defining most of the neural-network architecture terms in this chapter.
+
+### Mathematical notation
+
+The same symbol can have different meanings in different contexts. The definitions below follow the usage in this chapter; in particular, \(p\) is padding in the convolution equation and the dropout probability in the regularisation discussion, while \(s\) is stride in the convolution equation and a moving estimate in the Adam update.
+
+| Symbol | Meaning in this chapter |
+|---|---|
+| <span id="notation-f-theta">\(f_\theta\)</span> | The model function, parameterised by \(\theta\). |
+| <span id="notation-theta">\(\theta\), \(\theta^*\)</span> | The set of learnable model parameters and, with the asterisk, an optimal parameter setting for the stated objective. |
+| <span id="notation-data">\(x_i\), \(y_i\), \(\hat y\)</span> | An input example, its target value, and a model prediction, respectively. |
+| <span id="notation-weight-bias">\(w\), \(b\)</span> | A scalar weight and bias in the simple linear model or neuron example. |
+| <span id="notation-weight-matrix">\(W\), \(\mathbf b\)</span> | A layer's weight matrix and bias vector. |
+| <span id="notation-activation">\(\phi\)</span> | The activation function applied to a neuron's pre-activation value. |
+| <span id="notation-loss">\(\mathcal{L}\)</span> | The loss function. |
+| <span id="notation-dataset-size">\(N\)</span> | The number of examples in the dataset or objective being averaged. |
+| <span id="notation-attention">\(Q\), \(K\), \(V\), \(d_k\)</span> | Query, key and value representations, and the dimension of the key used in the attention scaling term. |
+| <span id="notation-layer-size">\(n_{in}\), \(n_{out}\)</span> | The number of inputs and the number of output neurons in a layer. |
+| <span id="notation-normalisation">\(\mu\), \(\sigma^2\), \(\epsilon\), \(\gamma\), \(\beta\)</span> | Mean, variance, a small numerical-stability constant, and learnable scale and shift parameters in the normalisation equation. The optimiser sections also use \(\beta\)-subscripts for Adam's moving averages. |
+| <span id="notation-learning-rate">\(\eta\)</span> | Learning rate, the step size used in parameter updates. |
+| <span id="notation-gradient">\(g\)</span> | A gradient used in the optimiser update equations. |
+| <span id="notation-weight-decay">\(\lambda\)</span> | The regularisation or weight-decay coefficient in the equations where it appears. |
+| <span id="notation-convolution">\(k\), \(s\), \(p\)</span> | Kernel size, stride and padding in the convolution output-size equation. |
+| <span id="notation-focal-probability">\(p_t\)</span> | The model probability assigned to the target class in the focal-loss expression. |
+| <span id="notation-dice-regions">\(A\), \(B\)</span> | The predicted and target regions used in the Dice-loss expression. |
+| <span id="notation-regression-metrics">\(R^2\), \(\mathrm{IoU}\)</span> | Coefficient of determination in the linear-regression widget, and intersection over union for comparing regions or boxes. |
