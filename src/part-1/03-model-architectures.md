@@ -1743,6 +1743,400 @@ Image -> [Conv+ReLU] -> [Pool] -> [Conv+ReLU] -> [Pool] -> ... -> [MLP head] -> 
 
 **In vehicles.** Object detection, traffic-sign classification, lane detection, semantic segmentation, and the image feature extractors inside larger systems.
 
+#### Interactive: from a camera image to CNN feature maps
+
+A convolutional operation is the core building block, but a CNN uses many filters in parallel and combines their feature maps across layers. The explorer below uses simplified automotive scenes to show how different filters respond to a vehicle, a pedestrian or lane markings. It also demonstrates ReLU, stride, padding and max pooling.
+
+This complements the single-filter convolution stepper in [Section 3.2.5](#conv-widget): here the focus is the role of feature maps inside an image-focused network.
+
+<div id="cnn-auto-widget" class="aisafety-widget" aria-label="Automotive CNN feature explorer">
+  <div class="aisw-controls cnn-controls">
+    <label>camera scene
+      <select id="cnn-scene">
+        <option value="car">Vehicle ahead</option>
+        <option value="pedestrian">Pedestrian</option>
+        <option value="lane">Lane markings</option>
+      </select>
+    </label>
+    <label>feature filter
+      <select id="cnn-filter">
+        <option value="vertical">Vertical edges</option>
+        <option value="horizontal">Horizontal edges</option>
+        <option value="contrast">Local contrast</option>
+      </select>
+    </label>
+    <label>stride
+      <select id="cnn-stride"><option value="1">1</option><option value="2">2</option></select>
+    </label>
+    <label>padding
+      <select id="cnn-padding"><option value="0">0 (valid)</option><option value="1" selected>1 (same)</option></select>
+    </label>
+    <label class="cnn-check"><input type="checkbox" id="cnn-relu" checked> ReLU</label>
+    <label class="cnn-check"><input type="checkbox" id="cnn-show-pool" checked> Show max pooling</label>
+    <button type="button" id="cnn-step">Step</button>
+    <button type="button" id="cnn-run">Auto-run</button>
+    <button type="button" id="cnn-reset">Reset</button>
+  </div>
+  <div class="cnn-pipeline" aria-label="CNN processing stages">
+    <span class="cnn-stage active">Camera image</span><span class="cnn-arrow">→</span>
+    <span class="cnn-stage">Convolution</span><span class="cnn-arrow">→</span>
+    <span class="cnn-stage">ReLU</span><span class="cnn-arrow">→</span>
+    <span class="cnn-stage">Feature map</span><span class="cnn-arrow">→</span>
+    <span class="cnn-stage">Max pooling</span>
+  </div>
+  <div class="cnn-views">
+    <section class="cnn-view">
+      <h4>1. Camera input <small>16 × 16 grayscale pixels</small></h4>
+      <canvas id="cnn-input" width="340" height="340" aria-label="Synthetic camera image as a pixel grid"></canvas>
+      <p class="aisw-hint">The blue dashed window shows the filter's current position. Change the scene to inspect a vehicle, pedestrian or lane marking.</p>
+    </section>
+    <section class="cnn-view">
+      <h4>2. Convolution filter <small>3 × 3 shared weights</small></h4>
+      <div id="cnn-kernel" class="cnn-kernel" aria-label="Selected convolution kernel"></div>
+      <div class="cnn-feature-caption">3. Feature map <small>response of the selected filter</small></div>
+      <canvas id="cnn-feature" width="300" height="300" aria-label="Convolution feature map"></canvas>
+      <p class="aisw-hint">One filter produces one feature map (one channel). A real CNN learns many filters, producing many feature maps.</p>
+    </section>
+    <section class="cnn-view" id="cnn-pool-panel">
+      <h4>4. Max-pooling output <small>2 × 2 regions</small></h4>
+      <canvas id="cnn-pool" width="220" height="220" aria-label="Max pooled feature map"></canvas>
+      <p class="aisw-hint">Max pooling keeps the strongest activation in each 2 × 2 region, reducing spatial size.</p>
+    </section>
+  </div>
+  <div id="cnn-stats" class="aisw-stats" aria-live="polite"></div>
+  <div id="cnn-insight" class="cnn-insight" aria-live="polite"></div>
+  <p class="cnn-caveat"><strong>Important:</strong> This is a teaching model, not a trained automotive CNN. The small camera scenes and hand-set filters are illustrative. In a real CNN, filter weights are learned from training data, and many layers combine low-level features into more complex patterns. No vehicle, pedestrian or lane classification is produced here.</p>
+</div>
+
+<style>
+
+.cnn-controls{display:flex;flex-wrap:wrap;align-items:end;gap:.65rem!important}
+#cnn-auto-widget .cnn-controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:650;color:#465362}
+#cnn-auto-widget .cnn-controls select{min-height:34px;border:1px solid #cbd2d9;border-radius:7px;padding:5px 8px;background:#fff;color:#273343;font:inherit;font-size:12px}
+#cnn-auto-widget .cnn-controls .cnn-check{display:flex;flex-direction:row;align-items:center;align-self:center;margin-top:16px;font-weight:550}
+#cnn-auto-widget button{cursor:pointer}
+#cnn-auto-widget .cnn-pipeline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px;margin:14px 0 12px;padding:10px;background:#f5f7f9;border:1px solid #e0e5e9;border-radius:9px}
+#cnn-auto-widget .cnn-stage{font-size:11px;font-weight:700;color:#526272;padding:5px 8px;border-radius:6px;background:#e8edf1}
+#cnn-auto-widget .cnn-stage.active{background:#dceafe;color:#1f5c9a}
+#cnn-auto-widget .cnn-arrow{color:#93a0ac;font-weight:800}
+#cnn-auto-widget .cnn-views{display:grid;grid-template-columns:1.05fr .95fr .72fr;gap:12px;align-items:start}
+#cnn-auto-widget .cnn-view{min-width:0;background:#fbfcfd;border:1px solid #e0e5e9;border-radius:10px;padding:10px}
+#cnn-auto-widget .cnn-view h4{display:flex;flex-direction:column;gap:3px;margin:0 0 8px;font-size:13px;color:#354353}
+#cnn-auto-widget .cnn-view h4 small,#cnn-auto-widget .cnn-feature-caption small{font-size:10px;color:#7c8792;font-weight:500}
+#cnn-auto-widget canvas{display:block;width:100%;height:auto;background:#faf9f4;border:1px solid #ddd8cb;border-radius:7px;image-rendering:pixelated}
+#cnn-auto-widget .cnn-kernel{display:grid;grid-template-columns:repeat(3,38px);gap:3px;margin:0 auto 10px;justify-content:center}
+#cnn-auto-widget .cnn-kernel span{display:grid;place-items:center;height:34px;background:#eef2f5;border:1px solid #d7dfe5;border-radius:5px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#34475a}
+#cnn-auto-widget .cnn-feature-caption{display:flex;flex-direction:column;gap:2px;margin:8px 0;font-size:12px;font-weight:750;color:#354353}
+#cnn-auto-widget .aisw-hint{font-size:11px;line-height:1.45;color:#75808b;margin:7px 1px 1px}
+#cnn-auto-widget .aisw-stats{margin-top:11px;padding:10px 12px;background:#f4f7fa;border:1px solid #dce4eb;border-radius:8px;font-size:12px;line-height:1.65;color:#435262}
+#cnn-auto-widget .cnn-insight{margin-top:9px;padding:10px 12px;border-left:3px solid #4c86b9;background:#f8fafc;border-radius:0 8px 8px 0;font-size:12px;line-height:1.55;color:#455361}
+#cnn-auto-widget .cnn-caveat{margin:10px 2px 0;color:#777f87;font-size:11px;line-height:1.55}
+@media(max-width:900px){#cnn-auto-widget .cnn-views{grid-template-columns:1fr 1fr}#cnn-auto-widget #cnn-pool-panel{grid-column:1/-1;max-width:340px}}
+@media(max-width:600px){#cnn-auto-widget .cnn-views{grid-template-columns:1fr}#cnn-auto-widget #cnn-pool-panel{grid-column:auto;max-width:none}#cnn-auto-widget .cnn-pipeline{justify-content:flex-start}}
+
+</style>
+
+<script>
+(function () {
+  const root = document.getElementById('cnn-auto-widget');
+  if (!root || root.dataset.initialized === 'true') return;
+  root.dataset.initialized = 'true';
+
+  const $ = (id) => root.querySelector(`#${id}`);
+  const inputCanvas = $('cnn-input');
+  const featureCanvas = $('cnn-feature');
+  const poolCanvas = $('cnn-pool');
+  const inputCtx = inputCanvas.getContext('2d');
+  const featureCtx = featureCanvas.getContext('2d');
+  const poolCtx = poolCanvas.getContext('2d');
+  const sceneSelect = $('cnn-scene');
+  const filterSelect = $('cnn-filter');
+  const strideSelect = $('cnn-stride');
+  const paddingSelect = $('cnn-padding');
+  const reluCheck = $('cnn-relu');
+  const poolCheck = $('cnn-show-pool');
+  const stepButton = $('cnn-step');
+  const runButton = $('cnn-run');
+  const resetButton = $('cnn-reset');
+  const stats = $('cnn-stats');
+  const insight = $('cnn-insight');
+  const kernelDisplay = $('cnn-kernel');
+  const poolPanel = $('cnn-pool-panel');
+
+  const N = 16;
+  const K = 3;
+  const pad = 18;
+  const filters = {
+    vertical: {
+      label: 'Vertical edges',
+      values: [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+      description: 'Responds to strong left-to-right intensity changes, such as the vertical sides of a vehicle or a pedestrian silhouette.'
+    },
+    horizontal: {
+      label: 'Horizontal edges',
+      values: [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+      description: 'Responds to strong top-to-bottom intensity changes, such as a bumper edge, horizon or horizontal road marking.'
+    },
+    contrast: {
+      label: 'Local contrast',
+      values: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]],
+      description: 'Responds where a pixel differs from its immediate neighbours. This can highlight corners and compact high-contrast details.'
+    }
+  };
+
+  let image = [];
+  let feature = [];
+  let stepIndex = -1;
+  let timer = null;
+  let outputSize = 0;
+
+  function blankImage(base) {
+    return Array.from({ length: N }, (_, r) => Array.from({ length: N }, (_, c) => base(r, c)));
+  }
+  function setRect(img, r1, c1, r2, c2, value) {
+    for (let r = Math.max(0, r1); r <= Math.min(N - 1, r2); r++) {
+      for (let c = Math.max(0, c1); c <= Math.min(N - 1, c2); c++) img[r][c] = value;
+    }
+  }
+  function buildScene(name) {
+    // A deliberately small, synthetic monochrome front-camera image.
+    // It illustrates convolution; it is not a real road image or trained perception model.
+    const img = blankImage((r) => r < 5 ? 0.78 : 0.22);
+    // road shoulders and perspective edges
+    for (let r = 5; r < N; r++) {
+      const half = Math.round(2 + (r - 5) * 0.55);
+      const centre = 7.5;
+      for (let c = 0; c < N; c++) {
+        if (Math.abs(c - centre) > half + 3) img[r][c] = Math.min(img[r][c], 0.16);
+      }
+    }
+    if (name === 'car') {
+      // Vehicle body, windscreen, bumper and dark wheels.
+      setRect(img, 8, 4, 11, 11, 0.82);
+      setRect(img, 6, 6, 8, 9, 0.62);
+      setRect(img, 9, 5, 10, 10, 0.92);
+      setRect(img, 12, 4, 13, 5, 0.06);
+      setRect(img, 12, 10, 13, 11, 0.06);
+      setRect(img, 10, 7, 10, 8, 0.98);
+    } else if (name === 'pedestrian') {
+      // Head, torso, arms and legs, drawn as high-contrast regions.
+      for (let r = 4; r <= 6; r++) {
+        for (let c = 7; c <= 8; c++) img[r][c] = 0.88;
+      }
+      setRect(img, 7, 6, 10, 9, 0.74);
+      setRect(img, 8, 4, 9, 5, 0.68);
+      setRect(img, 8, 10, 9, 11, 0.68);
+      setRect(img, 11, 6, 14, 6, 0.88);
+      setRect(img, 11, 9, 14, 9, 0.88);
+      setRect(img, 14, 5, 14, 7, 0.12);
+      setRect(img, 14, 8, 14, 10, 0.12);
+    } else {
+      // Lane-marking scene: two converging road boundaries and a dashed centre line.
+      for (let r = 6; r < N; r++) {
+        const half = Math.round(2 + (r - 5) * 0.55);
+        img[r][Math.max(0, Math.round(7.5 - half))] = 0.95;
+        img[r][Math.min(N - 1, Math.round(7.5 + half))] = 0.95;
+      }
+      [[7, 8], [10, 8], [13, 8]].forEach(([r, c]) => setRect(img, r, c, r + 1, c, 0.95));
+    }
+    // Subtle road texture keeps the example from being a perfectly binary drawing.
+    for (let r = 6; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (img[r][c] > 0.17 && img[r][c] < 0.3 && (r * 5 + c * 3) % 11 === 0) img[r][c] += 0.035;
+      }
+    }
+    return img;
+  }
+
+  function dims() {
+    const stride = Number(strideSelect.value);
+    const padding = Number(paddingSelect.value);
+    const out = Math.floor((N + 2 * padding - K) / stride) + 1;
+    return { stride, padding, out };
+  }
+  function sample(r, c) {
+    if (r < 0 || r >= N || c < 0 || c >= N) return 0;
+    return image[r][c];
+  }
+  function calculateFeature() {
+    const { stride, padding, out } = dims();
+    const kernel = filters[filterSelect.value].values;
+    const values = [];
+    for (let outR = 0; outR < out; outR++) {
+      const row = [];
+      for (let outC = 0; outC < out; outC++) {
+        let sum = 0;
+        for (let kr = 0; kr < K; kr++) {
+          for (let kc = 0; kc < K; kc++) {
+            sum += sample(outR * stride - padding + kr, outC * stride - padding + kc) * kernel[kr][kc];
+          }
+        }
+        row.push(reluCheck.checked ? Math.max(0, sum) : sum);
+      }
+      values.push(row);
+    }
+    return values;
+  }
+  function maxAbs(values) {
+    let m = 0.001;
+    values.flat().forEach(v => { if (v !== null && Math.abs(v) > m) m = Math.abs(v); });
+    return m;
+  }
+  function colorValue(v, max) {
+    if (v === null || v === undefined) return '#f1eee5';
+    if (reluCheck.checked) {
+      const t = Math.max(0, Math.min(1, v / max));
+      const r = Math.round(244 - 25 * t);
+      const g = Math.round(239 - 155 * t);
+      const b = Math.round(225 - 125 * t);
+      return `rgb(${r},${g},${b})`;
+    }
+    const t = Math.max(-1, Math.min(1, v / max));
+    if (t >= 0) return `rgb(${Math.round(245 - 65*t)},${Math.round(242 - 165*t)},${Math.round(229 - 155*t)})`;
+    const a = -t;
+    return `rgb(${Math.round(238 - 55*a)},${Math.round(240 - 105*a)},${Math.round(247 - 20*a)})`;
+  }
+  function drawGrid(ctx, values, canvas, activeIndex, isInput) {
+    const rows = values.length;
+    const cols = values[0].length;
+    const usableW = canvas.width - pad * 2;
+    const usableH = canvas.height - pad * 2;
+    const cellW = usableW / cols;
+    const cellH = usableH / rows;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#faf9f4';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const max = maxAbs(values);
+    values.forEach((row, r) => row.forEach((v, c) => {
+      ctx.fillStyle = isInput ? `rgb(${Math.round(255 - v*220)},${Math.round(255 - v*220)},${Math.round(255 - v*220)})` : colorValue(v, max);
+      ctx.fillRect(pad + c * cellW + 0.7, pad + r * cellH + 0.7, Math.max(1, cellW - 1.4), Math.max(1, cellH - 1.4));
+      if (isInput && cellW >= 15) {
+        ctx.strokeStyle = 'rgba(80,90,100,.12)';
+        ctx.strokeRect(pad + c * cellW + .5, pad + r * cellH + .5, cellW - 1, cellH - 1);
+      }
+    }));
+    if (isInput && stepIndex >= 0 && stepIndex < outputSize * outputSize) {
+      const { stride, padding } = dims();
+      const rr = Math.floor(stepIndex / outputSize);
+      const cc = stepIndex % outputSize;
+      const topR = rr * stride - padding;
+      const topC = cc * stride - padding;
+      ctx.save();
+      ctx.strokeStyle = '#2365a8';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 3]);
+      ctx.strokeRect(pad + topC * cellW, pad + topR * cellH, K * cellW, K * cellH);
+      ctx.restore();
+    }
+    if (!isInput && activeIndex >= 0 && activeIndex < rows * cols) {
+      const rr = Math.floor(activeIndex / cols);
+      const cc = activeIndex % cols;
+      ctx.strokeStyle = '#24394d';
+      ctx.lineWidth = 2.4;
+      ctx.strokeRect(pad + cc * cellW + 1, pad + rr * cellH + 1, cellW - 2, cellH - 2);
+    }
+    ctx.strokeStyle = '#b9b3a6';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, pad, usableW, usableH);
+  }
+  function pool(values) {
+    const rows = Math.floor(values.length / 2);
+    const cols = Math.floor(values[0].length / 2);
+    const result = [];
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols; c++) {
+        const block = [values[r*2][c*2], values[r*2][c*2+1], values[r*2+1][c*2], values[r*2+1][c*2+1]];
+        row.push(Math.max(...block));
+      }
+      result.push(row);
+    }
+    return result;
+  }
+  function buildKernel() {
+    const matrix = filters[filterSelect.value].values;
+    kernelDisplay.innerHTML = '';
+    matrix.flat().forEach(v => {
+      const cell = document.createElement('span');
+      cell.textContent = Number.isInteger(v) ? String(v) : v.toFixed(1);
+      kernelDisplay.appendChild(cell);
+    });
+  }
+  function insightText() {
+    const scene = sceneSelect.value;
+    const filter = filters[filterSelect.value];
+    let sceneText = scene === 'car'
+      ? 'In this schematic car scene, edge filters respond to changes around the body, windscreen and wheels.'
+      : scene === 'pedestrian'
+        ? 'In this schematic pedestrian scene, edge filters respond to the outline of the head, torso, arms and legs.'
+        : 'In this lane-marking scene, edge filters respond to the road boundaries and the dashed centre marking.';
+    insight.innerHTML = `<strong>${filter.label}:</strong> ${filter.description}<br><br>${sceneText} A real CNN learns many filters from training data and combines their feature maps across successive layers. This demonstration uses illustrative hand-set filters, not trained weights.`;
+  }
+  function stopRun() {
+    if (timer) { clearInterval(timer); timer = null; }
+    runButton.textContent = 'Auto-run';
+  }
+  function reset() {
+    stopRun();
+    image = buildScene(sceneSelect.value);
+    feature = calculateFeature();
+    outputSize = feature.length;
+    stepIndex = -1;
+    buildKernel();
+    draw();
+  }
+  function draw() {
+    const { stride, padding, out } = dims();
+    // Progressive display: show only feature-map cells already visited by the sliding filter.
+    const progressive = feature.map((row, r) => row.map((v, c) => (r * out + c <= stepIndex ? v : null)));
+    drawGrid(inputCtx, image, inputCanvas, -1, true);
+    drawGrid(featureCtx, progressive, featureCanvas, stepIndex, false);
+    const total = out * out;
+    const done = stepIndex >= total - 1;
+    poolPanel.hidden = !poolCheck.checked;
+    if (poolCheck.checked && done) {
+      drawGrid(poolCtx, pool(feature), poolCanvas, -1, false);
+    } else {
+      poolCtx.clearRect(0, 0, poolCanvas.width, poolCanvas.height);
+      poolCtx.fillStyle = '#f7f5ee'; poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
+      poolCtx.fillStyle = '#78818b'; poolCtx.font = '12px system-ui'; poolCtx.textAlign = 'center';
+      poolCtx.fillText(done ? 'Pooling disabled' : 'Complete convolution', poolCanvas.width/2, poolCanvas.height/2);
+    }
+    const current = stepIndex >= 0 && stepIndex < total ? feature[Math.floor(stepIndex / out)][stepIndex % out] : null;
+    const max = Math.max(...feature.flat().map(v => Math.abs(v)));
+    stats.innerHTML = `Input: ${N} × ${N} pixels &nbsp;·&nbsp; Kernel: ${K} × ${K} &nbsp;·&nbsp; Stride: ${stride} &nbsp;·&nbsp; Padding: ${padding}<br>`+
+      `Feature map: ${out} × ${out} &nbsp;·&nbsp; Output size: floor((${N} + 2×${padding} − ${K}) / ${stride}) + 1 = ${out}<br>`+
+      (stepIndex < 0 ? 'Press Step or Auto-run to move the filter across the image.' : done ? `Convolution complete: ${total} positions evaluated. Maximum feature response: ${max.toFixed(2)}.` : `Position ${stepIndex+1} / ${total} &nbsp;·&nbsp; Current response: ${current.toFixed(2)}.`) +
+      (poolCheck.checked && done ? ` Max pooling reduces ${out} × ${out} to ${Math.floor(out/2)} × ${Math.floor(out/2)}.` : '');
+    stepButton.disabled = done;
+  }
+  function step() {
+    const total = outputSize * outputSize;
+    if (stepIndex < total - 1) stepIndex++;
+    draw();
+    if (stepIndex >= total - 1) stopRun();
+  }
+
+  sceneSelect.addEventListener('change', reset);
+  filterSelect.addEventListener('change', reset);
+  strideSelect.addEventListener('change', reset);
+  paddingSelect.addEventListener('change', reset);
+  reluCheck.addEventListener('change', reset);
+  poolCheck.addEventListener('change', draw);
+  stepButton.addEventListener('click', () => { stopRun(); step(); });
+  runButton.addEventListener('click', () => {
+    if (timer) { stopRun(); return; }
+    if (stepIndex >= outputSize * outputSize - 1) reset();
+    runButton.textContent = 'Pause';
+    timer = setInterval(step, 180);
+  });
+  resetButton.addEventListener('click', reset);
+
+  reset();
+})();
+
+</script>
+
 ### 3.5.3 Recurrent Networks: [RNN](#glossary-rnn), [LSTM](#glossary-rnn) and [GRU](#glossary-rnn)
 
 **Idea.** A network with **memory**, designed for sequences — data where order matters, such as video frames, or the positions of a vehicle over time.
@@ -1987,11 +2381,11 @@ Clause references identify the relevant entry or technical discussion; they are 
 |---|---|---|
 | <span id="glossary-neural-network"><strong>Neural network</strong></span> | A network of one or more layers of neurons connected through weighted links, with adjustable weights, that receives input data and produces an output. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.8](https://www.iso.org/standard/74296.html). Also defined for the robustness context in [ISO/IEC TR 24029-1:2021, 3.4](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso-iec%3Atr%3A24029%3A-1%3Aed-1%3Av1%3Aen). |
 | <span id="glossary-model-architecture"><strong>Model architecture</strong></span> | In this chapter, the architecture is the arrangement of a model's computational elements and their connections, which determines how information is transformed from input to output. | **Standard context only:** [ISO/PAS 8800:2024, 6.3–6.4](https://www.iso.org/standard/83303.html) discusses abstraction layers and an example AI-system architecture. The selected standards do not provide a standalone Clause 3 definition of *model architecture*. |
-| <span id="glossary-linear-regression"><strong>Linear regression</strong></span> | A machine-learning method that determines the intercept and weights of a linear function relating an input to a numerical output. | **Standard context only:** [ISO/PAS 8800:2024, 3.1.30](https://www.iso.org/standard/83303.html) uses a trained univariate linear function as an example when describing an ML algorithm; it does not provide a separate glossary definition of *linear regression*. |
+| <span id="glossary-linear-regression"><strong>Linear regression</strong></span> | A machine-learning method that determines the intercept and weights of a linear function relating an input to a numerical output. | **Standard context only:** [ISO/PAS 8800:2024, 3.1.30](https://www.iso.org/standard/83303.html) uses a trained univariate linear function as an example when describing an ML algorithm; it does not provide a separate glossary definition of *linear regression*, but specifies that the process of determining the intercept and weights for a linear function is known as *linear regression*. |
 | <span id="glossary-model-parameters"><strong>Model parameters, weights and biases</strong></span> | A model parameter is an internal variable that affects how the model computes its outputs. Neural-network weights are an explicit example; this chapter also treats the bias values in its equations as model parameters. | **Standard definition:** [ISO/IEC 22989:2022, 3.3.8](https://www.iso.org/standard/74296.html). The standard explicitly gives neural-network weights as an example; the grouping with biases follows the chapter's model equations. |
 | <span id="glossary-neuron"><strong>Neuron</strong></span> | A primitive processing element that combines one or more input values and applies an activation function to produce an output value. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.9](https://www.iso.org/standard/74296.html). |
 | <span id="glossary-activation-function"><strong>Activation function</strong></span> | A function applied to the weighted combination of a neuron's inputs. Activation functions are typically nonlinear and allow a neural network to learn more complex features. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.1](https://www.iso.org/standard/74296.html). The standard defines the general term, not each named function (ReLU, sigmoid, tanh, GELU or SiLU). |
-| <span id="glossary-layer"><strong>Layer</strong></span> | A stage in a neural network. In the chapter's examples, layers receive inputs, apply a transformation and pass their outputs to the next stage. | **Standard context only:** [ISO/IEC 22989:2022, 3.4.8](https://www.iso.org/standard/74296.html) describes neural networks as comprising one or more layers of neurons, but the selected standards do not give a separate definition of *layer*. |
+| <span id="glossary-layer"><strong>Layer</strong></span> | A stage in a neural network. In the chapter's examples, layers receive inputs, apply a transformation and pass their outputs to the next stage. | **Standard context only:** [ISO/IEC 22989:2022, 3.4.8](https://www.iso.org/standard/74296.html) defines the *artificial neural network* as comprising one or more *layers* of neurons, but the selected standards do not give a specific  definition of *layer*. |
 | <span id="glossary-deep-learning"><strong>Deep learning</strong></span> | An approach that learns hierarchical representations by training neural networks with many hidden layers; it is a subset of machine learning. | **Standard definition:** [ISO/IEC 22989:2022, 3.4.4](https://www.iso.org/standard/74296.html). |
 
 ### Network operations and components
@@ -2012,7 +2406,7 @@ Clause references identify the relevant entry or technical discussion; they are 
 | <span id="glossary-hyperparameter"><strong>Hyperparameter</strong></span> | A parameter of the AI technology that affects model performance and the learning process. Hyperparameters are selected before training and can be used to help determine model parameters. | **Standard definition:** [ISO/PAS 8800:2024, 3.1.27](https://www.iso.org/standard/83303.html). |
 | <span id="glossary-forward-pass"><strong>Forward pass or forward propagation</strong></span> | The calculation that carries input values through successive network operations to produce an output or prediction. | **No separate definition identified** for *forward pass/forward propagation*. **Standard context only:** [ISO/IEC 22989:2022, 3.4.6](https://www.iso.org/standard/74296.html) defines a feed-forward neural network as one in which information flows from input to output in one direction. |
 | <span id="glossary-inference"><strong>Inference</strong></span> | Reasoning by which conclusions are derived from known premises. In AI, the premises can include facts, rules, models, features or raw data; in this chapter, the term is used for obtaining an output from a trained model. | **Standard definition:** [ISO/IEC 22989:2022, 3.1.17](https://www.iso.org/standard/74296.html). For the output of an AI system, see also *prediction* in ISO/IEC 22989:2022, 3.1.27. |
-| <span id="glossary-loss-function"><strong>Loss function and common losses</strong></span> | In this chapter, a loss function is the numerical measure used during training to express the discrepancy between a model's output and the target. The chapter introduces cross-entropy, MSE, L1, Huber/Smooth-L1, IoU/GIoU, focal and Dice losses. | **No formal definition identified** for *loss function* or the listed loss variants in the selected standards. **Standard context only:** [ISO/PAS 8800:2024, 3.1.32](https://www.iso.org/standard/83303.html) refers to a cost function as an object that an ML algorithm can adapt during model training. |
+| <span id="glossary-loss-function"><strong>Loss function and common losses</strong></span> | In this chapter, a loss function is the numerical measure used during training to express the discrepancy between a model's output and the target. The chapter introduces cross-entropy, MSE, L1, Huber/Smooth-L1, IoU/GIoU, focal and Dice losses. | **No formal definition identified** for *loss function* or the listed loss variants in the selected standards. **Standard context only:** [ISO/PAS 8800:2024, 3.1.32](https://www.iso.org/standard/83303.html) refers to a cost function as part of the definition of *ML model training* which   can adapt during model training. |
 | <span id="glossary-gradient"><strong>Gradient</strong></span> | The collection of partial derivatives of a quantity, such as the loss, with respect to model parameters. It indicates how that quantity changes locally as the parameters change. | **No general definition identified** in the selected standards. [ISO/IEC 22989:2022, 3.4.5](https://www.iso.org/standard/74296.html) defines *exploding gradient*, a related training phenomenon, but not the general term *gradient*. |
 | <span id="glossary-backpropagation"><strong>Backpropagation</strong></span> | A neural-network training method that uses the error at the output layer to adjust the weights of connections in preceding layers. | **Standard definition:** [ISO/IEC 23053:2022, 3.2.1](https://www.iso.org/standard/74438.html). |
 | <span id="glossary-chain-rule"><strong>Chain rule</strong></span> | A calculus rule for differentiating a composition of functions. In neural-network training, it allows derivatives to be combined across successive operations. | **No formal definition identified** in the selected standards. This is a mathematical concept used to explain backpropagation. |
