@@ -1711,26 +1711,15 @@ Finding good hyperparameters is called **tuning**. Each candidate is evaluated b
 
 ## 3.5 Architecture Families
 
-The building blocks of Section 3.2 can be combined in many ways. This section introduces the main families relevant to automotive AI. Each subsection answers three questions: *What is the idea? How does it work? Where is it used in vehicles?*
+The building blocks in Section 3.2 combine into architecture families suited to different kinds of data. Here we focus on the core idea and automotive use; the comparison in Section 3.7 summarises their trade-offs.
 
 ### 3.5.1 Multi-Layer Perceptron (MLP)
 
-**Idea.** The simplest neural network: a stack of layers in which every neuron is connected to every neuron of the next layer (also called a *fully connected* or *dense* network).
-
-**How it works.** The input is a list of numbers (a vector). Each layer computes $\mathbf{h} = \phi(W\mathbf{x}+\mathbf{b})$ and passes the result on (Section 3.2.3).
-
-**Strengths and limits.** MLPs are flexible and easy to build, and they work well on tables of numbers. For images they are inefficient: every pixel would need its own weights, and the network has no built-in notion that neighbouring pixels belong together.
-
-**In vehicles.**
-- The final "decision" layers of larger networks, for example turning image features into class probabilities or box coordinates.
-- Small regressors, such as mapping sensor values to an estimate.
-- Components inside transformers (the feed-forward block).
+An **MLP** (fully connected or dense network) passes a vector through layers where every neuron connects to every neuron in the next layer (Section 3.2.3). MLPs work well with tabular sensor data and often form prediction heads, but are inefficient on raw images because they do not exploit pixel neighbourhoods.
 
 ### 3.5.2 Convolutional Neural Networks (CNN)
 
-**Idea.** A network designed for images. It uses convolutions (Section 3.2.5) so that the same pattern detector is reused across the whole image.
-
-**How it works.** A CNN stacks convolution, activation and pooling layers. Early layers detect simple patterns such as edges and colours, middle layers combine them into shapes such as wheels or windows, and later layers recognise whole objects such as cars or pedestrians. As the data moves deeper, the feature maps get smaller in size but richer in meaning.
+**CNNs** reuse the same convolution filters across an image (Section 3.2.5), building feature maps that later layers combine into more complex patterns.
 
 ```
 Image -> [Conv+ReLU] -> [Pool] -> [Conv+ReLU] -> [Pool] -> ... -> [MLP head] -> "pedestrian"
@@ -1741,532 +1730,80 @@ Image -> [Conv+ReLU] -> [Pool] -> [Conv+ReLU] -> [Pool] -> ... -> [MLP head] -> 
 
 | Network | Key idea |
 |---|---|
-| **LeNet** | Early CNN for digit recognition; showed the basic recipe |
-| **ResNet** | Residual connections (Section 3.2.8) allow networks with 50–150+ layers; very common [backbone](#glossary-backbone-neck-head) |
-| **EfficientNet** | Scales depth, width and image size together for good accuracy at low cost |
-| [**YOLO**](#glossary-yolo) | "You Only Look Once" — a CNN that predicts boxes and classes for all objects in a single pass; fast (used in Chapter 2's Lab 1) |
-| **U-Net / FCN** | CNNs whose output is an image of the same size, used for segmentation (labelling every pixel) |
+| **ResNet / EfficientNet** | Image feature extractors used as network backbones |
+| [**YOLO**](#glossary-yolo) | Predicts object boxes and classes in one network evaluation |
+| **U-Net** | Produces a label for each image pixel |
 
-**In vehicles.** Object detection, traffic-sign classification, lane detection, semantic segmentation, and the image feature extractors inside larger systems.
+CNNs are used for camera-based object detection, sign and lane recognition, and image segmentation.
 
 #### Interactive: from a camera image to CNN feature maps
 
-A convolutional operation is the core building block, but a CNN uses many filters in parallel and combines their feature maps across layers. The explorer below uses simplified automotive scenes to show how different filters respond to a vehicle, a pedestrian or lane markings. It also demonstrates ReLU, stride, padding and max pooling.
+This visual explorer uses synthetic scenes and hand-set filters to illustrate convolution, feature maps, ReLU, stride, padding and max pooling. It is a teaching model, not a trained classifier.
 
-This complements the single-filter convolution stepper in [Section 3.2.5](#conv-widget): here the focus is the role of feature maps inside an image-focused network.
-
-```{=html}
-<div id="cnn-auto-widget" class="aisafety-widget" aria-label="Automotive CNN feature explorer">
-  <div class="aisw-controls cnn-controls">
-    <label>camera scene
-      <select id="cnn-scene">
-        <option value="car">Vehicle ahead</option>
-        <option value="pedestrian">Pedestrian</option>
-        <option value="lane">Lane markings</option>
-      </select>
-    </label>
-    <label>feature filter
-      <select id="cnn-filter">
-        <option value="vertical">Vertical edges</option>
-        <option value="horizontal">Horizontal edges</option>
-        <option value="contrast">Local contrast</option>
-      </select>
-    </label>
-    <label>stride
-      <select id="cnn-stride"><option value="1">1</option><option value="2">2</option></select>
-    </label>
-    <label>padding
-      <select id="cnn-padding"><option value="0">0 (valid)</option><option value="1" selected>1 (same)</option></select>
-    </label>
-    <label class="cnn-check"><input type="checkbox" id="cnn-relu" checked> ReLU</label>
-    <label class="cnn-check"><input type="checkbox" id="cnn-show-pool" checked> Show max pooling</label>
-    <button type="button" id="cnn-step">Step</button>
-    <button type="button" id="cnn-run">Auto-run</button>
-    <button type="button" id="cnn-reset">Reset</button>
-  </div>
-  <div class="cnn-pipeline" aria-label="CNN processing stages">
-    <span class="cnn-stage active">Camera image</span><span class="cnn-arrow">→</span>
-    <span class="cnn-stage">Convolution</span><span class="cnn-arrow">→</span>
-    <span class="cnn-stage">ReLU</span><span class="cnn-arrow">→</span>
-    <span class="cnn-stage">Feature map</span><span class="cnn-arrow">→</span>
-    <span class="cnn-stage">Max pooling</span>
-  </div>
-  <div class="cnn-views">
-    <section class="cnn-view">
-      <h4>1. Camera input <small>16 × 16 grayscale pixels</small></h4>
-      <canvas id="cnn-input" width="340" height="340" aria-label="Synthetic camera image as a pixel grid"></canvas>
-      <p class="aisw-hint">The blue dashed window shows the filter's current position. Change the scene to inspect a vehicle, pedestrian or lane marking.</p>
-    </section>
-    <section class="cnn-view">
-      <h4>2. Convolution filter <small>3 × 3 shared weights</small></h4>
-      <div id="cnn-kernel" class="cnn-kernel" aria-label="Selected convolution kernel"></div>
-      <div class="cnn-feature-caption">3. Feature map <small>response of the selected filter</small></div>
-      <canvas id="cnn-feature" width="300" height="300" aria-label="Convolution feature map"></canvas>
-      <p class="aisw-hint">One filter produces one feature map (one channel). A real CNN learns many filters, producing many feature maps.</p>
-    </section>
-    <section class="cnn-view" id="cnn-pool-panel">
-      <h4>4. Max-pooling output <small>2 × 2 regions</small></h4>
-      <canvas id="cnn-pool" width="220" height="220" aria-label="Max pooled feature map"></canvas>
-      <p class="aisw-hint">Max pooling keeps the strongest activation in each 2 × 2 region, reducing spatial size.</p>
-    </section>
-  </div>
-  <div id="cnn-stats" class="aisw-stats" aria-live="polite"></div>
-  <div id="cnn-insight" class="cnn-insight" aria-live="polite"></div>
-  <p class="cnn-caveat"><strong>Important:</strong> This is a teaching model, not a trained automotive CNN. The small camera scenes and hand-set filters are illustrative. In a real CNN, filter weights are learned from training data, and many layers combine low-level features into more complex patterns. No vehicle, pedestrian or lane classification is produced here.</p>
-</div>
-
-<style>
-
-.cnn-controls{display:flex;flex-wrap:wrap;align-items:end;gap:.65rem!important}
-#cnn-auto-widget .cnn-controls label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:650;color:#465362}
-#cnn-auto-widget .cnn-controls select{min-height:34px;border:1px solid #cbd2d9;border-radius:7px;padding:5px 8px;background:#fff;color:#273343;font:inherit;font-size:12px}
-#cnn-auto-widget .cnn-controls .cnn-check{display:flex;flex-direction:row;align-items:center;align-self:center;margin-top:16px;font-weight:550}
-#cnn-auto-widget button{cursor:pointer}
-#cnn-auto-widget .cnn-pipeline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px;margin:14px 0 12px;padding:10px;background:#f5f7f9;border:1px solid #e0e5e9;border-radius:9px}
-#cnn-auto-widget .cnn-stage{font-size:11px;font-weight:700;color:#526272;padding:5px 8px;border-radius:6px;background:#e8edf1}
-#cnn-auto-widget .cnn-stage.active{background:#dceafe;color:#1f5c9a}
-#cnn-auto-widget .cnn-arrow{color:#93a0ac;font-weight:800}
-#cnn-auto-widget .cnn-views{display:grid;grid-template-columns:1.05fr .95fr .72fr;gap:12px;align-items:start}
-#cnn-auto-widget .cnn-view{min-width:0;background:#fbfcfd;border:1px solid #e0e5e9;border-radius:10px;padding:10px}
-#cnn-auto-widget .cnn-view h4{display:flex;flex-direction:column;gap:3px;margin:0 0 8px;font-size:13px;color:#354353}
-#cnn-auto-widget .cnn-view h4 small,#cnn-auto-widget .cnn-feature-caption small{font-size:10px;color:#7c8792;font-weight:500}
-#cnn-auto-widget canvas{display:block;width:100%;height:auto;background:#faf9f4;border:1px solid #ddd8cb;border-radius:7px;image-rendering:pixelated}
-#cnn-auto-widget .cnn-kernel{display:grid;grid-template-columns:repeat(3,38px);gap:3px;margin:0 auto 10px;justify-content:center}
-#cnn-auto-widget .cnn-kernel span{display:grid;place-items:center;height:34px;background:#eef2f5;border:1px solid #d7dfe5;border-radius:5px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#34475a}
-#cnn-auto-widget .cnn-feature-caption{display:flex;flex-direction:column;gap:2px;margin:8px 0;font-size:12px;font-weight:750;color:#354353}
-#cnn-auto-widget .aisw-hint{font-size:11px;line-height:1.45;color:#75808b;margin:7px 1px 1px}
-#cnn-auto-widget .aisw-stats{margin-top:11px;padding:10px 12px;background:#f4f7fa;border:1px solid #dce4eb;border-radius:8px;font-size:12px;line-height:1.65;color:#435262}
-#cnn-auto-widget .cnn-insight{margin-top:9px;padding:10px 12px;border-left:3px solid #4c86b9;background:#f8fafc;border-radius:0 8px 8px 0;font-size:12px;line-height:1.55;color:#455361}
-#cnn-auto-widget .cnn-caveat{margin:10px 2px 0;color:#777f87;font-size:11px;line-height:1.55}
-@media(max-width:900px){#cnn-auto-widget .cnn-views{grid-template-columns:1fr 1fr}#cnn-auto-widget #cnn-pool-panel{grid-column:1/-1;max-width:340px}}
-@media(max-width:600px){#cnn-auto-widget .cnn-views{grid-template-columns:1fr}#cnn-auto-widget #cnn-pool-panel{grid-column:auto;max-width:none}#cnn-auto-widget .cnn-pipeline{justify-content:flex-start}}
-
-</style>
-
-<script>
-(function () {
-  const root = document.getElementById('cnn-auto-widget');
-  if (!root || root.dataset.initialized === 'true') return;
-  root.dataset.initialized = 'true';
-
-  const $ = (id) => root.querySelector(`#${id}`);
-  const inputCanvas = $('cnn-input');
-  const featureCanvas = $('cnn-feature');
-  const poolCanvas = $('cnn-pool');
-  const inputCtx = inputCanvas.getContext('2d');
-  const featureCtx = featureCanvas.getContext('2d');
-  const poolCtx = poolCanvas.getContext('2d');
-  const sceneSelect = $('cnn-scene');
-  const filterSelect = $('cnn-filter');
-  const strideSelect = $('cnn-stride');
-  const paddingSelect = $('cnn-padding');
-  const reluCheck = $('cnn-relu');
-  const poolCheck = $('cnn-show-pool');
-  const stepButton = $('cnn-step');
-  const runButton = $('cnn-run');
-  const resetButton = $('cnn-reset');
-  const stats = $('cnn-stats');
-  const insight = $('cnn-insight');
-  const kernelDisplay = $('cnn-kernel');
-  const poolPanel = $('cnn-pool-panel');
-
-  const N = 16;
-  const K = 3;
-  const pad = 18;
-  const filters = {
-    vertical: {
-      label: 'Vertical edges',
-      values: [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
-      description: 'Responds to strong left-to-right intensity changes, such as the vertical sides of a vehicle or a pedestrian silhouette.'
-    },
-    horizontal: {
-      label: 'Horizontal edges',
-      values: [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
-      description: 'Responds to strong top-to-bottom intensity changes, such as a bumper edge, horizon or horizontal road marking.'
-    },
-    contrast: {
-      label: 'Local contrast',
-      values: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]],
-      description: 'Responds where a pixel differs from its immediate neighbours. This can highlight corners and compact high-contrast details.'
-    }
-  };
-
-  let image = [];
-  let feature = [];
-  let stepIndex = -1;
-  let timer = null;
-  let outputSize = 0;
-
-  function blankImage(base) {
-    return Array.from({ length: N }, (_, r) => Array.from({ length: N }, (_, c) => base(r, c)));
-  }
-  function setRect(img, r1, c1, r2, c2, value) {
-    for (let r = Math.max(0, r1); r <= Math.min(N - 1, r2); r++) {
-      for (let c = Math.max(0, c1); c <= Math.min(N - 1, c2); c++) img[r][c] = value;
-    }
-  }
-  function buildScene(name) {
-    // A deliberately small, synthetic monochrome front-camera image.
-    // It illustrates convolution; it is not a real road image or trained perception model.
-    const img = blankImage((r) => r < 5 ? 0.78 : 0.22);
-    // road shoulders and perspective edges
-    for (let r = 5; r < N; r++) {
-      const half = Math.round(2 + (r - 5) * 0.55);
-      const centre = 7.5;
-      for (let c = 0; c < N; c++) {
-        if (Math.abs(c - centre) > half + 3) img[r][c] = Math.min(img[r][c], 0.16);
-      }
-    }
-    if (name === 'car') {
-      // Vehicle body, windscreen, bumper and dark wheels.
-      setRect(img, 8, 4, 11, 11, 0.82);
-      setRect(img, 6, 6, 8, 9, 0.62);
-      setRect(img, 9, 5, 10, 10, 0.92);
-      setRect(img, 12, 4, 13, 5, 0.06);
-      setRect(img, 12, 10, 13, 11, 0.06);
-      setRect(img, 10, 7, 10, 8, 0.98);
-    } else if (name === 'pedestrian') {
-      // Head, torso, arms and legs, drawn as high-contrast regions.
-      for (let r = 4; r <= 6; r++) {
-        for (let c = 7; c <= 8; c++) img[r][c] = 0.88;
-      }
-      setRect(img, 7, 6, 10, 9, 0.74);
-      setRect(img, 8, 4, 9, 5, 0.68);
-      setRect(img, 8, 10, 9, 11, 0.68);
-      setRect(img, 11, 6, 14, 6, 0.88);
-      setRect(img, 11, 9, 14, 9, 0.88);
-      setRect(img, 14, 5, 14, 7, 0.12);
-      setRect(img, 14, 8, 14, 10, 0.12);
-    } else {
-      // Lane-marking scene: two converging road boundaries and a dashed centre line.
-      for (let r = 6; r < N; r++) {
-        const half = Math.round(2 + (r - 5) * 0.55);
-        img[r][Math.max(0, Math.round(7.5 - half))] = 0.95;
-        img[r][Math.min(N - 1, Math.round(7.5 + half))] = 0.95;
-      }
-      [[7, 8], [10, 8], [13, 8]].forEach(([r, c]) => setRect(img, r, c, r + 1, c, 0.95));
-    }
-    // Subtle road texture keeps the example from being a perfectly binary drawing.
-    for (let r = 6; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        if (img[r][c] > 0.17 && img[r][c] < 0.3 && (r * 5 + c * 3) % 11 === 0) img[r][c] += 0.035;
-      }
-    }
-    return img;
-  }
-
-  function dims() {
-    const stride = Number(strideSelect.value);
-    const padding = Number(paddingSelect.value);
-    const out = Math.floor((N + 2 * padding - K) / stride) + 1;
-    return { stride, padding, out };
-  }
-  function sample(r, c) {
-    if (r < 0 || r >= N || c < 0 || c >= N) return 0;
-    return image[r][c];
-  }
-  function calculateFeature() {
-    const { stride, padding, out } = dims();
-    const kernel = filters[filterSelect.value].values;
-    const values = [];
-    for (let outR = 0; outR < out; outR++) {
-      const row = [];
-      for (let outC = 0; outC < out; outC++) {
-        let sum = 0;
-        for (let kr = 0; kr < K; kr++) {
-          for (let kc = 0; kc < K; kc++) {
-            sum += sample(outR * stride - padding + kr, outC * stride - padding + kc) * kernel[kr][kc];
-          }
-        }
-        row.push(reluCheck.checked ? Math.max(0, sum) : sum);
-      }
-      values.push(row);
-    }
-    return values;
-  }
-  function maxAbs(values) {
-    let m = 0.001;
-    values.flat().forEach(v => { if (v !== null && Math.abs(v) > m) m = Math.abs(v); });
-    return m;
-  }
-  function colorValue(v, max) {
-    if (v === null || v === undefined) return '#f1eee5';
-    if (reluCheck.checked) {
-      const t = Math.max(0, Math.min(1, v / max));
-      const r = Math.round(244 - 25 * t);
-      const g = Math.round(239 - 155 * t);
-      const b = Math.round(225 - 125 * t);
-      return `rgb(${r},${g},${b})`;
-    }
-    const t = Math.max(-1, Math.min(1, v / max));
-    if (t >= 0) return `rgb(${Math.round(245 - 65*t)},${Math.round(242 - 165*t)},${Math.round(229 - 155*t)})`;
-    const a = -t;
-    return `rgb(${Math.round(238 - 55*a)},${Math.round(240 - 105*a)},${Math.round(247 - 20*a)})`;
-  }
-  function drawGrid(ctx, values, canvas, activeIndex, isInput) {
-    const rows = values.length;
-    const cols = values[0].length;
-    const usableW = canvas.width - pad * 2;
-    const usableH = canvas.height - pad * 2;
-    const cellW = usableW / cols;
-    const cellH = usableH / rows;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#faf9f4';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const max = maxAbs(values);
-    values.forEach((row, r) => row.forEach((v, c) => {
-      ctx.fillStyle = isInput ? `rgb(${Math.round(255 - v*220)},${Math.round(255 - v*220)},${Math.round(255 - v*220)})` : colorValue(v, max);
-      ctx.fillRect(pad + c * cellW + 0.7, pad + r * cellH + 0.7, Math.max(1, cellW - 1.4), Math.max(1, cellH - 1.4));
-      if (isInput && cellW >= 15) {
-        ctx.strokeStyle = 'rgba(80,90,100,.12)';
-        ctx.strokeRect(pad + c * cellW + .5, pad + r * cellH + .5, cellW - 1, cellH - 1);
-      }
-    }));
-    if (isInput && stepIndex >= 0 && stepIndex < outputSize * outputSize) {
-      const { stride, padding } = dims();
-      const rr = Math.floor(stepIndex / outputSize);
-      const cc = stepIndex % outputSize;
-      const topR = rr * stride - padding;
-      const topC = cc * stride - padding;
-      ctx.save();
-      ctx.strokeStyle = '#2365a8';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(pad + topC * cellW, pad + topR * cellH, K * cellW, K * cellH);
-      ctx.restore();
-    }
-    if (!isInput && activeIndex >= 0 && activeIndex < rows * cols) {
-      const rr = Math.floor(activeIndex / cols);
-      const cc = activeIndex % cols;
-      ctx.strokeStyle = '#24394d';
-      ctx.lineWidth = 2.4;
-      ctx.strokeRect(pad + cc * cellW + 1, pad + rr * cellH + 1, cellW - 2, cellH - 2);
-    }
-    ctx.strokeStyle = '#b9b3a6';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(pad, pad, usableW, usableH);
-  }
-  function pool(values) {
-    const rows = Math.floor(values.length / 2);
-    const cols = Math.floor(values[0].length / 2);
-    const result = [];
-    for (let r = 0; r < rows; r++) {
-      const row = [];
-      for (let c = 0; c < cols; c++) {
-        const block = [values[r*2][c*2], values[r*2][c*2+1], values[r*2+1][c*2], values[r*2+1][c*2+1]];
-        row.push(Math.max(...block));
-      }
-      result.push(row);
-    }
-    return result;
-  }
-  function buildKernel() {
-    const matrix = filters[filterSelect.value].values;
-    kernelDisplay.innerHTML = '';
-    matrix.flat().forEach(v => {
-      const cell = document.createElement('span');
-      cell.textContent = Number.isInteger(v) ? String(v) : v.toFixed(1);
-      kernelDisplay.appendChild(cell);
-    });
-  }
-  function insightText() {
-    const scene = sceneSelect.value;
-    const filter = filters[filterSelect.value];
-    let sceneText = scene === 'car'
-      ? 'In this schematic car scene, edge filters respond to changes around the body, windscreen and wheels.'
-      : scene === 'pedestrian'
-        ? 'In this schematic pedestrian scene, edge filters respond to the outline of the head, torso, arms and legs.'
-        : 'In this lane-marking scene, edge filters respond to the road boundaries and the dashed centre marking.';
-    insight.innerHTML = `<strong>${filter.label}:</strong> ${filter.description}<br><br>${sceneText} A real CNN learns many filters from training data and combines their feature maps across successive layers. This demonstration uses illustrative hand-set filters, not trained weights.`;
-  }
-  function stopRun() {
-    if (timer) { clearInterval(timer); timer = null; }
-    runButton.textContent = 'Auto-run';
-  }
-  function reset() {
-    stopRun();
-    image = buildScene(sceneSelect.value);
-    feature = calculateFeature();
-    outputSize = feature.length;
-    stepIndex = -1;
-    buildKernel();
-    draw();
-  }
-  function draw() {
-    const { stride, padding, out } = dims();
-    // Progressive display: show only feature-map cells already visited by the sliding filter.
-    const progressive = feature.map((row, r) => row.map((v, c) => (r * out + c <= stepIndex ? v : null)));
-    drawGrid(inputCtx, image, inputCanvas, -1, true);
-    drawGrid(featureCtx, progressive, featureCanvas, stepIndex, false);
-    const total = out * out;
-    const done = stepIndex >= total - 1;
-    poolPanel.hidden = !poolCheck.checked;
-    if (poolCheck.checked && done) {
-      drawGrid(poolCtx, pool(feature), poolCanvas, -1, false);
-    } else {
-      poolCtx.clearRect(0, 0, poolCanvas.width, poolCanvas.height);
-      poolCtx.fillStyle = '#f7f5ee'; poolCtx.fillRect(0, 0, poolCanvas.width, poolCanvas.height);
-      poolCtx.fillStyle = '#78818b'; poolCtx.font = '12px system-ui'; poolCtx.textAlign = 'center';
-      poolCtx.fillText(done ? 'Pooling disabled' : 'Complete convolution', poolCanvas.width/2, poolCanvas.height/2);
-    }
-    const current = stepIndex >= 0 && stepIndex < total ? feature[Math.floor(stepIndex / out)][stepIndex % out] : null;
-    const max = Math.max(...feature.flat().map(v => Math.abs(v)));
-    stats.innerHTML = `Input: ${N} × ${N} pixels &nbsp;·&nbsp; Kernel: ${K} × ${K} &nbsp;·&nbsp; Stride: ${stride} &nbsp;·&nbsp; Padding: ${padding}<br>`+
-      `Feature map: ${out} × ${out} &nbsp;·&nbsp; Output size: floor((${N} + 2×${padding} − ${K}) / ${stride}) + 1 = ${out}<br>`+
-      (stepIndex < 0 ? 'Press Step or Auto-run to move the filter across the image.' : done ? `Convolution complete: ${total} positions evaluated. Maximum feature response: ${max.toFixed(2)}.` : `Position ${stepIndex+1} / ${total} &nbsp;·&nbsp; Current response: ${current.toFixed(2)}.`) +
-      (poolCheck.checked && done ? ` Max pooling reduces ${out} × ${out} to ${Math.floor(out/2)} × ${Math.floor(out/2)}.` : '');
-    stepButton.disabled = done;
-  }
-  function step() {
-    const total = outputSize * outputSize;
-    if (stepIndex < total - 1) stepIndex++;
-    draw();
-    if (stepIndex >= total - 1) stopRun();
-  }
-
-  sceneSelect.addEventListener('change', reset);
-  filterSelect.addEventListener('change', reset);
-  strideSelect.addEventListener('change', reset);
-  paddingSelect.addEventListener('change', reset);
-  reluCheck.addEventListener('change', reset);
-  poolCheck.addEventListener('change', draw);
-  stepButton.addEventListener('click', () => { stopRun(); step(); });
-  runButton.addEventListener('click', () => {
-    if (timer) { stopRun(); return; }
-    if (stepIndex >= outputSize * outputSize - 1) reset();
-    runButton.textContent = 'Pause';
-    timer = setInterval(step, 180);
-  });
-  resetButton.addEventListener('click', reset);
-
-  reset();
-})();
-
-</script>
-```
 ```{=html}
 <iframe
-  src="cnn-architecture-explorer.html"
-  title="Interactive CNN architecture explorer: LeNet-5, ResNet-18, EfficientNet-B0 and YOLOv8"
+  src="cnn-feature-explorer.html"
+  title="Interactive CNN feature-map explorer"
   width="100%"
-  height="1120"
+  height="820"
   loading="lazy"
   style="border:0; border-radius:12px;">
 </iframe>
 ```
+
+For an optional coding exercise, [open the CNN architecture notebook in Colab](https://colab.research.google.com/github/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/07-model-architectures.ipynb) or [view it on GitHub](https://github.com/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/07-model-architectures.ipynb).
+
+The [CNN architecture explorer](cnn-architecture-explorer.html) is available as an optional interactive resource.
+
 ### 3.5.3 Recurrent Networks: [RNN](#glossary-rnn), [LSTM](#glossary-rnn) and [GRU](#glossary-rnn)
 
-**Idea.** A network with **memory**, designed for sequences — data where order matters, such as video frames, or the positions of a vehicle over time.
-
-**How it works.** A **Recurrent Neural Network (RNN)** processes the sequence one step at a time and carries a hidden state (its "memory") from one step to the next:
-
-$$
-\mathbf{h}_t = \phi\big(W_x \mathbf{x}_t + W_h \mathbf{h}_{t-1} + \mathbf{b}\big)
-$$
-
-Plain RNNs struggle to remember things over long sequences (the vanishing-gradient problem of Section 3.2.4 applies across time). Two improved designs solve much of this:
-
-- **LSTM (Long Short-Term Memory):** adds **gates** — small learned switches that decide what to *forget*, what new information to *store*, and what to *output*. This lets it keep important information for a long time.
-- **GRU (Gated Recurrent Unit):** a simpler variant of the LSTM with fewer gates and parameters.
-
-**In vehicles.**
-- Predicting the future trajectory of surrounding vehicles and pedestrians from their past positions.
-- Tracking objects across video frames.
-- Filtering noisy sensor sequences.
-
-**Limits.** Because they process one step after another, recurrent networks are slow to train and still find very long sequences hard. For many sequence tasks they have been largely replaced by transformers (Section 3.5.5), but they remain common in smaller, lightweight models.
+**RNNs** process sequences one step at a time, carrying a hidden state forward as memory. **LSTMs** and **GRUs** use gates to control what information is retained; they are used for tasks such as trajectory prediction and tracking. Their sequential computation can be slower to train than transformers (Section 3.5.5).
 
 ### 3.5.4 [Encoder–Decoder Networks](#glossary-encoder-decoder) and [Autoencoders](#glossary-encoder-decoder)
 
-**Idea.** Split a network into two halves. The **encoder** compresses the input into a short summary (called the [**latent representation**](#glossary-encoder-decoder) or *bottleneck*); the **decoder** expands that summary into the desired output.
+An **encoder** maps input to a compact [latent representation](#glossary-encoder-decoder); a **decoder** turns it into the desired output.
 
 ```
 Input -> [ Encoder ] -> compact summary (latent) -> [ Decoder ] -> Output
 ```
 
-**Variants.**
-
-- **Autoencoder.** The output is a reconstruction of the input itself. The network is trained to rebuild the input from the compact summary, so it must learn the most important features. No labels are needed (see Section 2.3 and 2.4).
-- **Segmentation networks (e.g. U-Net).** The decoder outputs a label for every pixel. **Skip connections** copy detailed information from encoder to decoder so that fine boundaries are preserved.
-- **Sequence-to-sequence models.** An encoder reads an input sequence (for example, past motion and map) and a decoder generates an output sequence (for example, future motion). Transformers use this same encoder–decoder pattern.
-
-**In vehicles.** Pixel-wise scene understanding, learning compact features from unlabelled sensor data, anomaly detection (a model trained to rebuild "normal" data rebuilds unusual data poorly), and trajectory generation.
+In an **autoencoder**, the decoder reconstructs the input, enabling unsupervised representation learning and anomaly detection. Encoder–decoder designs also support pixel-wise segmentation (for example, U-Net) and sequence prediction.
 
 ### 3.5.5 Transformers and Attention
 
-**Idea.** Instead of reading data step by step or through small local windows, a **transformer** looks at *all* parts of the input at once and learns which parts are related to each other. It is the architecture behind modern language models, and it has become central to vision and driving models too.
-
-**How it works.**
-
-1. The input is split into pieces called [**tokens**](#glossary-transformer) — for a sentence, words; for an image, small patches (for example $16\times16$ pixels); for a driving scene, objects, map elements or BEV cells.
-2. Each token is converted into a vector. Because attention itself has no sense of order or position, a [**positional encoding**](#glossary-transformer) is added so that the model knows where each token is.
-3. [**Self-attention**](#glossary-attention-patterns) (Section 3.2.9) lets every token gather information from every other token:
-
-$$
-\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
-$$
-
-   - $Q$ (queries), $K$ (keys) and $V$ (values) are all computed from the tokens by learned weights.
-   - $QK^\top$ measures how relevant each token is to each other token.
-   - Softmax turns relevance scores into weights that sum to 1, and the output is the weighted mix of values.
-4. [**Multi-head attention**](#glossary-attention-patterns) runs several attention operations in parallel, so that different "heads" can look for different kinds of relationships.
-5. Each attention step is followed by a small MLP, with residual connections and LayerNorm around both. This **transformer block** is stacked many times.
-
-**Self-attention vs. cross-attention.** In *self-attention*, queries, keys and values all come from the same data. In [*cross-attention*](#glossary-attention-patterns), queries come from one source and keys and values from another — for example, queries from a BEV grid and keys and values from camera images (Section 3.5.7).
+**Transformers** use attention to relate tokens—such as image patches, objects or map elements—and can process them in parallel. Each block combines attention with an MLP, residual connections and normalisation (Section 3.2). Self-attention relates tokens within one input; cross-attention combines information from different inputs, as in camera-to-BEV models.
 
 **Well-known examples.**
 
 | Model | Key idea |
 |---|---|
-| **Transformer** (Vaswani et al., 2017) | Original encoder–decoder transformer for language |
-| **ViT** (Vision Transformer) | Treat an image as a sequence of patches and process it with a transformer |
-| **DETR** | Detects objects by letting a set of learned queries attend to image features, which removes many hand-designed detection components |
+| **Transformer** | Original attention-based architecture for language |
+| **ViT** | Treats an image as a sequence of patches |
+| **DETR** | Uses learned queries to detect objects from image features |
 
-**Strengths and limits.** Transformers capture long-range relationships well and can be trained efficiently in parallel. The cost of attention grows with the *square* of the number of tokens, and transformers usually need a lot of training data.
-
-**In vehicles.** Image backbones, detection heads, camera-to-BEV conversion, trajectory prediction and fusion of multiple sensors.
+Transformers capture long-range relationships and are used in vision, detection, trajectory prediction and sensor fusion. Their attention cost grows quadratically with token count, and they are often data- and compute-intensive.
 
 ### 3.5.6 Point-Cloud Networks: PointNet and PointPillars
 
-**The data.** A [LiDAR](#glossary-point-cloud) sensor measures distances with laser pulses and produces a [**point cloud**](#glossary-point-cloud): a list of 3D points, each with a position $(x,y,z)$ and usually a reflection intensity $r$. This is very different from an image:
-
-- It is **unordered** (shuffling the list does not change the scene).
-- It is **sparse** (most of space is empty).
-- The number of points varies from scan to scan.
-
-Standard CNNs expect a regular grid, so point clouds need a different approach.
-
-**PointNet.** Processes each point with the same small MLP and then combines all points with a symmetric operation (max pooling) that does not depend on their order. It was the first network to work directly on raw point clouds.
-
-**PointPillars.** A fast and widely used LiDAR detector that gets the best of both worlds: it turns the point cloud into a pseudo-image, so that fast 2D CNNs can be used. The steps are:
-
-1. **Pillars.** Divide the ground plane (viewed from above) into a regular grid. Each cell, extended over the full height, is a vertical column — a **pillar**. Every point falls into one pillar.
-2. **Pillar features.** Each point is described by its own values $(x,y,z,r)$ plus its offsets from the pillar centre and from the average of the points in the pillar. A small PointNet-style network (linear layer, BatchNorm, ReLU, then max pooling over the points in the pillar) turns each pillar into one feature vector.
-3. **Pseudo-image.** The pillar feature vectors are placed back on the grid, which creates an image-like tensor of shape $C \times H \times W$ (channels $\times$ height $\times$ width).
-4. **2D CNN backbone.** An ordinary CNN processes the pseudo-image at several scales.
-5. **Detection head.** A final layer predicts 3D bounding boxes (position, size, orientation) and a class for each object.
+LiDAR produces an unordered, sparse [point cloud](#glossary-point-cloud), unlike an image's regular grid. **PointNet** applies the same small network to each point and combines the results without depending on point order. **PointPillars** bins points into vertical columns, converts those columns to a pseudo-image, and uses a 2D CNN to detect 3D objects.
 
 ```
 Point cloud -> Pillars -> PointNet per pillar -> Pseudo-image -> 2D CNN -> 3D boxes
 ```
 
-**Related networks.** **SECOND** (uses 3D sparse convolutions on [voxels](#glossary-point-cloud)) and **CenterPoint** (detects objects as centre points on a BEV grid, then regresses box size and orientation) are other widely used LiDAR detectors.
-
-**In vehicles.** 3D object detection from LiDAR: finding the position, size and heading of cars, pedestrians and cyclists.
+Other LiDAR detectors include **SECOND**, which uses sparse 3D convolutions, and **CenterPoint**, which predicts object centres on a BEV grid. These models support 3D detection of vehicles, pedestrians and cyclists.
 
 ### 3.5.7 Bird's-Eye-View (BEV) Networks
 
-**Idea.** A [**bird's-eye view (BEV)**](#glossary-bev) is a top-down map of the surroundings, as if seen from a drone hovering above the vehicle. In this view, distances and positions can be read directly, objects do not appear larger or smaller depending on how close they are, and data from several sensors can be placed in one common frame. This makes BEV a natural "common language" for perception, prediction and planning.
-
-**The challenge.** Cameras see the world in a perspective view, not top-down, and a single camera image does not tell how far away things are. A BEV network must therefore convert from camera images to the top-down map.
+Bird's-eye view (**BEV**) represents the surroundings in a shared top-down coordinate frame, making it useful for combining sensors and supporting detection, mapping and planning. Camera-based systems must estimate depth to transform perspective images into BEV features.
 
 **Main approaches.**
 
 | Model | How it builds the BEV |
 |---|---|
-| **Lift-Splat-Shoot (LSS)** | **Lift:** for each pixel, predict a distribution over possible depths and create a "frustum" of 3D features along the viewing ray. **Splat:** add these features into the cells of a BEV grid. **Shoot:** use the BEV for tasks such as planning. |
-| **BEVFormer** | Uses a grid of learnable **BEV queries**. **Spatial cross-attention** lets each BEV cell look up the relevant camera images at the right locations; **temporal self-attention** lets it also use the BEV from the previous frame. |
-| **BEVFusion** | Builds a BEV feature map from the cameras and another from LiDAR, then fuses the two into a single BEV representation. |
+| **Lift-Splat-Shoot (LSS)** | Lifts image features into 3D using estimated depth, then aggregates them into BEV cells |
+| **BEVFormer** | Uses BEV queries to gather spatial and temporal information with attention |
+| **BEVFusion** | Combines camera and LiDAR features in BEV |
 
 ```
 Camera images (multiple views)  ->  image backbone  ->  view transform  ->  BEV features -> heads
@@ -2274,17 +1811,16 @@ LiDAR point cloud               ->  PointPillars-style encoder ------------>  BE
                                                                     (fuse)       (detection, segmentation, ...)
 ```
 
-**In vehicles.** 3D detection and tracking from several cameras, map and lane segmentation in the BEV, fusion of camera and LiDAR, and the input to motion prediction and planning.
+BEV is used for multi-camera or camera–LiDAR fusion, 3D detection, lane mapping and as an input to motion prediction.
 
 ### 3.5.8 Other Architectures (Brief Overview)
 
-The following are active areas that students will meet in the literature. They are introduced here only by name and one-line idea:
+Other families you may encounter include:
 
-- **Graph Neural Networks (GNN).** Work on data that forms a graph — nodes connected by edges. In driving, lanes, vehicles and pedestrians can be nodes, and their relationships the edges (for example **VectorNet** for map and trajectory prediction).
-- **Occupancy networks.** Predict, for each small 3D cell around the vehicle, whether it is occupied, instead of drawing boxes around known object classes.
-- **End-to-end driving models.** A single network that maps from sensor input directly to a driving plan or control output, replacing separate perception, prediction and planning modules (see Chapter 5).
-- **Diffusion and other generative models.** Learn to generate realistic new data (images, scenes, trajectories); one use is creating synthetic training data (see Chapter 11).
-- **Vision-language models.** Combine images and text in a single model, for example to describe a scene or answer questions about it.
+- **Graph neural networks:** model relationships between entities, such as road users and map elements.
+- **Occupancy networks:** predict which cells in the surrounding 3D space are occupied.
+- **End-to-end driving models:** map sensor inputs directly to plans or controls (Chapter 5).
+- **Generative and vision-language models:** generate data or connect visual input with text.
 
 ## 3.6 Putting It Together: A Modern Perception Network
 

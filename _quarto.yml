@@ -13,6 +13,8 @@ project:
 
   resources:
     - src/part-1/cnn-architecture-explorer.html
+    - src/part-1/cnn-feature-explorer.html
+    - notebooks/part-1/07-model-architectures.ipynb
 
 website:
   title: "AI Safety for Autonomous Driving"
@@ -73,6 +75,7 @@ website:
             - notebooks/part-1/03-self-supervised-lightly.ipynb            
             - notebooks/part-1/04-semi-supervised-pseudolabels.ipynb
             - notebooks/part-1/05-reinforcement-highwayenv.ipynb
+            - notebooks/part-1/07-model-architectures.ipynb
 
 format:
   html:
