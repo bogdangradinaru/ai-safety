@@ -1831,7 +1831,7 @@ An **MLP** (fully connected or dense network) passes a vector through layers whe
 <div><strong>2. Hidden layer</strong><output id="mlp-hidden"></output></div>
 <div><strong>3. Output</strong><output id="mlp-output"></output></div>
 </div>
-<p class="aisw-hint">Move the sliders and step through a fully connected 2 → 2 → 1 network. Lines show connections, and nodes reveal values as they are computed. Hidden neurons use ReLU; the output is a weighted sum. Changing an input restarts the example. Values are dimensionless and weights are hand-set: the output is not a driving decision or safety score.</p>
+<p class="aisw-hint">Move the sliders to recalculate every node immediately, or press Reset and step through the fully connected 2 → 2 → 1 network one layer at a time. Hidden neurons use ReLU; the output is a weighted sum. Values are dimensionless and weights are hand-set: the output is not a driving decision or safety score.</p>
 <div id="mlp-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -1906,7 +1906,7 @@ The [CNN architecture explorer](cnn-architecture-explorer.html) is available as 
 <div><strong>2. Previous state</strong><output id="rnn-previous"></output></div>
 <div><strong>3. New state</strong><output id="rnn-state"></output></div>
 </div>
-<p class="aisw-hint">Step through four dimensionless motion measurements, starting with state 0. Each box shows the state produced at that time; a line carries it to the next copy of the same cell. The cell computes h = tanh(input + memory weight × previous state). Changing the sequence or memory weight resets the state. This is a simplified RNN, not an LSTM or GRU and not a trained tracker.</p>
+<p class="aisw-hint">Step through four dimensionless motion measurements, starting with state 0. Each box shows the state produced at that time; a line carries it to the next copy of the same cell. The cell computes h = tanh(input + memory weight × previous state). Moving the memory-weight slider recalculates all four states; changing the sequence resets them. Press Reset to step through again. This is a simplified RNN, not an LSTM or GRU and not a trained tracker.</p>
 <div id="rnn-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -1962,7 +1962,7 @@ In an **autoencoder**, the decoder reconstructs the input, enabling unsupervised
 <div><strong>2. Latent representation</strong><output id="encoder-latent"></output></div>
 <div><strong>3. Reconstruction</strong><output id="encoder-output"></output></div>
 </div>
-<p class="aisw-hint">The fixed encoder averages adjacent pairs of four dimensionless sensor values; the decoder repeats each average. Step through the 4 → 2 → 4 transformation and compare the reconstruction with the original. This is a hand-set linear autoencoder, not a trained model; a bottleneck can lose information.</p>
+<p class="aisw-hint">The fixed encoder averages adjacent pairs of four dimensionless sensor values; the decoder repeats each average. Moving a slider immediately recalculates the entire 4 → 2 → 4 transformation. Press Reset to step through it instead. This is a hand-set linear autoencoder, not a trained model; a bottleneck can lose information.</p>
 <div id="encoder-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```

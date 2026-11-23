@@ -31,10 +31,11 @@
     }
 
     function reset() { stage = 0; draw(); }
+    function updateInput() { stage = 2; draw(); }
     el("mlp-step").addEventListener("click", () => { if (stage < 2) stage++; draw(); });
     el("mlp-reset").addEventListener("click", reset);
-    speed.addEventListener("input", reset);
-    proximity.addEventListener("input", reset);
+    speed.addEventListener("input", updateInput);
+    proximity.addEventListener("input", updateInput);
     reset();
   }
 
@@ -66,8 +67,7 @@
       el("rnn-step").disabled = step === values.length;
     }
 
-    function reset() { step = 0; state = 0; previous = 0; history = []; draw(); }
-    el("rnn-step").addEventListener("click", () => {
+    function advance() {
       const values = sequences[sequence.value];
       if (step < values.length) {
         previous = state;
@@ -75,11 +75,22 @@
         history.push(state);
         step++;
       }
+    }
+
+    function clear() { step = 0; state = 0; previous = 0; history = []; }
+    function reset() { clear(); draw(); }
+    function updateMemory() {
+      clear();
+      while (step < sequences[sequence.value].length) advance();
+      draw();
+    }
+    el("rnn-step").addEventListener("click", () => {
+      advance();
       draw();
     });
     el("rnn-reset").addEventListener("click", reset);
     sequence.addEventListener("change", reset);
-    memory.addEventListener("input", reset);
+    memory.addEventListener("input", updateMemory);
     reset();
   }
 
@@ -110,9 +121,10 @@
     }
 
     function reset() { stage = 0; draw(); }
+    function updateInput() { stage = 2; draw(); }
     el("encoder-step").addEventListener("click", () => { if (stage < 2) stage++; draw(); });
     el("encoder-reset").addEventListener("click", reset);
-    inputs.forEach((input) => input.addEventListener("input", reset));
+    inputs.forEach((input) => input.addEventListener("input", updateInput));
     reset();
   }
 

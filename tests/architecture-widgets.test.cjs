@@ -36,7 +36,7 @@ function setup() {
   return { get, trigger };
 }
 
-test("MLP computes each dense layer and resets on input changes", () => {
+test("MLP computes each dense layer and recalculates on input changes", () => {
   const { get, trigger } = setup();
   assert.equal(get("mlp-hidden").textContent, "Not computed");
   trigger("mlp-step", "click");
@@ -46,14 +46,12 @@ test("MLP computes each dense layer and resets on input changes", () => {
   assert.equal(get("mlp-output").textContent, "0.45");
   assert.equal(get("mlp-step").disabled, true);
   trigger("mlp-proximity", "input", "0");
-  assert.equal(get("mlp-output").textContent, "Not computed");
-  assert.equal(get("mlp-step").disabled, false);
-  trigger("mlp-step", "click");
   assert.equal(get("mlp-hidden").textContent, "[0.00, 0.60]");
-  trigger("mlp-step", "click");
   assert.equal(get("mlp-output").textContent, "-0.14");
+  assert.equal(get("mlp-step").disabled, true);
   trigger("mlp-reset", "click");
   assert.equal(get("mlp-hidden").textContent, "Not computed");
+  assert.equal(get("mlp-step").disabled, false);
 });
 
 test("RNN carries state across time and resets when its settings change", () => {
@@ -68,8 +66,11 @@ test("RNN carries state across time and resets when its settings change", () => 
   trigger("rnn-step", "click");
   assert.equal(get("rnn-step").disabled, true);
   trigger("rnn-memory", "input", "0");
-  assert.equal(get("rnn-step").disabled, false);
+  assert.equal(get("rnn-step").disabled, true);
+  assert.equal(get("rnn-state").textContent, Math.tanh(0.8).toFixed(3));
+  trigger("rnn-reset", "click");
   assert.equal(get("rnn-state").textContent, "Not computed");
+  assert.equal(get("rnn-step").disabled, false);
   trigger("rnn-step", "click");
   trigger("rnn-step", "click");
   assert.equal(get("rnn-state").textContent, Math.tanh(0.4).toFixed(3));
@@ -90,9 +91,6 @@ test("autoencoder shows information loss and exact reconstructions", () => {
   assert.equal(get("encoder-step").disabled, true);
   trigger("encoder-input-2", "input", "0.2");
   trigger("encoder-input-4", "input", "0.4");
-  assert.equal(get("encoder-output").textContent, "Not computed");
-  trigger("encoder-step", "click");
-  trigger("encoder-step", "click");
   assert.equal(get("encoder-output").textContent, "[0.20, 0.20, 0.40, 0.40]");
   assert.match(get("encoder-stats").textContent, /MSE = 0\.0000/);
 });
@@ -111,6 +109,10 @@ test("graphs reveal and reset calculated node values by stage", () => {
   assert.equal(get("mlp-explorer").attributes["data-stage"], "2");
   trigger("mlp-speed", "input", "1");
   assert.equal(get("mlp-graph-input-1").textContent, "1.00");
+  assert.equal(get("mlp-graph-hidden-1").textContent, "1.10");
+  assert.equal(get("mlp-graph-output").textContent, "0.63");
+  assert.equal(get("mlp-explorer").attributes["data-stage"], "2");
+  trigger("mlp-reset", "click");
   assert.equal(get("mlp-graph-hidden-1").textContent, "?");
   assert.equal(get("mlp-explorer").attributes["data-stage"], "0");
 
@@ -141,4 +143,30 @@ test("RNN graph retains each computed state and highlights the current step", ()
   assert.equal(get("rnn-graph-input-1").textContent, "x = 0.8");
   assert.equal(get("rnn-graph-state-1").textContent, "?");
   assert.equal(get("rnn-graph-cell-2").attributes["data-status"], "pending");
+});
+
+test("sliders update every diagram immediately, including from the reset state", () => {
+  const { get, trigger } = setup();
+  trigger("mlp-speed", "input", "0");
+  assert.equal(get("mlp-graph-input-1").textContent, "0.00");
+  assert.equal(get("mlp-graph-hidden-1").textContent, "0.10");
+  assert.equal(get("mlp-graph-output").textContent, "0.17");
+
+  trigger("encoder-input-1", "input", "1");
+  assert.equal(get("encoder-graph-input-1").textContent, "1.00");
+  assert.equal(get("encoder-graph-latent-1").textContent, "0.90");
+  assert.equal(get("encoder-graph-output-2").textContent, "0.90");
+  assert.equal(get("encoder-output").textContent, "[0.90, 0.90, 0.50, 0.50]");
+
+  trigger("rnn-memory", "input", "1");
+  let state = 0;
+  for (const [index, value] of [0.2, 0.4, 0.6, 0.8].entries()) {
+    state = Math.tanh(value + state);
+    assert.equal(get(`rnn-graph-state-${index + 1}`).textContent, state.toFixed(2));
+  }
+  assert.equal(get("rnn-state").textContent, state.toFixed(3));
+  trigger("rnn-memory", "input", "0");
+  assert.equal(get("rnn-graph-state-2").textContent, Math.tanh(0.4).toFixed(2));
+  assert.equal(get("rnn-graph-state-4").textContent, Math.tanh(0.8).toFixed(2));
+  assert.equal(get("rnn-graph-cell-4").attributes["data-status"], "current");
 });
