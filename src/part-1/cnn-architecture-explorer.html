@@ -16,6 +16,110 @@
 .yolo-stack{display:grid;grid-template-columns:1fr;gap:10px}.yolo-band{border:1px solid #ddd6c9;border-radius:11px;padding:12px;background:#fbfaf6}.yolo-band h3{font-size:13px;margin:0 0 9px}.yolo-nodes{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.yolo-node{border:1px solid #d9d2c3;background:white;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:10px;line-height:1.4;font-weight:700;color:#364555;cursor:pointer;min-width:100px;text-align:center}.yolo-node:hover,.yolo-node.active{background:#fff2cf;border-color:#8c8069;box-shadow:0 0 0 2px rgba(140,128,105,.12)}.pyramid{display:flex;justify-content:space-around;gap:8px;flex-wrap:wrap;margin-top:10px}.pyr{flex:1;min-width:110px;text-align:center;border:1px solid #ddd5c7;background:#fff;border-radius:9px;padding:8px}.pyr b{display:block;font-size:12px}.pyr small{display:block;color:#6e7883;font-size:10px;margin-top:3px}
 .footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.link{color:#276aa1;text-decoration:none;font-size:11px;font-weight:750}.link:hover{text-decoration:underline}.small{font-size:10px;color:#82877f}.compare{margin-top:14px;border:1px solid var(--border);border-radius:13px;background:#fffefa;padding:14px}.compare h2{font-size:15px;margin:0 0 10px}.compare-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.compare-card{background:#faf8f1;border:1px solid #e6e0d4;border-radius:9px;padding:10px}.compare-card b{font-size:11px;display:block;margin-bottom:5px}.compare-card span{font-size:10px;line-height:1.5;color:#697581}
 @media(max-width:760px){.wrap{padding:14px}.detail-grid{grid-template-columns:1fr}.compare-grid{grid-template-columns:repeat(2,1fr)}.model-head{display:block}.tag{margin-top:8px}}
+
+/* Match the Quarto Cosmo theme */
+:root {
+  --ink: #373a3c;
+  --muted: #6c757d;
+  --paper: #ffffff;
+  --panel: #ffffff;
+  --border: #dee2e6;
+  --blue: #2780e3;
+  --orange: #f0ad4e;
+  --green: #56bc8a;
+  --purple: #8e62b5;
+  --red: #d9534f;
+  --line: #adb5bd;
+}
+
+body {
+  background: #ffffff;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.eyebrow {
+  color: #6c757d;
+}
+
+.lead,
+.model-summary,
+.detail p,
+.principle p {
+  color: #5b6475;
+}
+
+.tabs,
+.diagram-shell,
+.detail,
+.principle,
+.compare {
+  background: #ffffff;
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+
+.tab,
+.yolo-node {
+  background: #ffffff;
+  border-color: #dee2e6;
+  color: #373a3c;
+}
+
+.tab[aria-selected="true"] {
+  background: #e7f1ff;
+  border-color: #2780e3;
+  color: #175a9c;
+}
+
+.tag {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+}
+
+.stage {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  border-color: #dee2e6;
+  color: #373a3c;
+}
+
+.stage.active {
+  background: #f8fbff;
+  border-color: var(--accent, var(--blue));
+  box-shadow: 0 0 0 3px rgba(39, 128, 227, 0.12);
+}
+
+.shape-line,
+.note,
+.compare-card,
+.pyr,
+.block,
+.yolo-band {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+.note {
+  border-left-color: #2780e3;
+}
+
+.yolo-node:hover,
+.yolo-node.active {
+  background: #e7f1ff;
+  border-color: #2780e3;
+  box-shadow: 0 0 0 2px rgba(39, 128, 227, 0.12);
+}
+
+.link {
+  color: #2780e3;
+}
+
+.small,
+.kicker,
+.eyebrow {
+  color: #6c757d;
+}
 </style>
 </head>
 <body>
