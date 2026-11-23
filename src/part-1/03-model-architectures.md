@@ -223,6 +223,17 @@ $$
 
 You can think of a neuron as a tiny calculator that makes a small decision, such as "does this part of the image look like an edge?".
 
+Writing the weighted sum as $z = \mathbf{w}^\top\mathbf{x} + b$, the activation choices in the interactive example are:
+
+| Activation | Function $\phi(z)$ |
+|---|---|
+| **None** | $z$ |
+| **ReLU** | $\max(0, z)$ |
+| **Sigmoid** | $\dfrac{1}{1 + e^{-z}}$ |
+| **Tanh** | $\dfrac{e^z - e^{-z}}{e^z + e^{-z}}$ |
+
+Section 3.2.4 explains these activation functions in more detail.
+
 <div id="neuron-widget" class="aisafety-widget">
 <div class="aisw-controls">
 <label>w1 <input type="range" id="neuron-w1" min="-3" max="3" step="0.1" value="1"> <span id="neuron-w1-val">1.0</span></label>
