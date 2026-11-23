@@ -11,6 +11,9 @@ project:
     - notebooks/index.qmd
     - notebooks/part-1/01-supervised-live-demo.qmd
 
+  resources:
+    - src/part-1/cnn-architecture-explorer.html
+
 website:
   title: "AI Safety for Autonomous Driving"
 

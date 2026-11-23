@@ -1582,6 +1582,21 @@ The **learning rate** $\eta$ is the size of the step:
 })();
 </script>
 
+#### Interactive: comparing four CNN architectures
+
+Explore how different CNN architectures are organised, from a classic image classifier to modern networks used for object detection.
+
+```{=html}
+<iframe
+  src="cnn-architecture-explorer.html"
+  title="Interactive CNN architecture explorer: LeNet-5, ResNet-18, EfficientNet-B0 and YOLOv8"
+  width="100%"
+  height="1120"
+  loading="lazy"
+  style="border:0; border-radius:12px;">
+</iframe>
+```
+
 ### 3.3.5 [Mini-batches](#glossary-sgd) and [Stochastic Gradient Descent (SGD)](#glossary-sgd)
 
 Computing the gradient over the *entire* dataset for every single step is too slow for large datasets. Instead, we use a small random subset — a **mini-batch**, typically 16 to 512 examples — to estimate the gradient. This is **Stochastic Gradient Descent (SGD)**. Each step is a little noisy, but steps are much cheaper, and the noise even helps the network avoid poor solutions.
