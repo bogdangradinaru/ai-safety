@@ -1798,6 +1798,26 @@ The building blocks in Section 3.2 combine into architecture families suited to 
 
 An **MLP** (fully connected or dense network) passes a vector through layers where every neuron connects to every neuron in the next layer (Section 3.2.3). MLPs work well with tabular sensor data and often form prediction heads, but are inefficient on raw images because they do not exploit pixel neighbourhoods.
 
+#### Interactive: inputs through a small MLP
+
+```{=html}
+<div id="mlp-explorer" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Relative speed <input type="range" id="mlp-speed" min="0" max="1" step="0.1" value="0.4"> <span id="mlp-speed-value"></span></label>
+<label>Proximity <input type="range" id="mlp-proximity" min="0" max="1" step="0.1" value="0.6"> <span id="mlp-proximity-value"></span></label>
+<button type="button" id="mlp-step">Next layer</button>
+<button type="button" id="mlp-reset">Reset</button>
+</div>
+<div class="architecture-flow" aria-label="MLP processing stages">
+<div><strong>1. Inputs</strong><output id="mlp-input"></output></div>
+<div><strong>2. Hidden layer</strong><output id="mlp-hidden"></output></div>
+<div><strong>3. Output</strong><output id="mlp-output"></output></div>
+</div>
+<p class="aisw-hint">Move the sliders and step through a fully connected 2 → 2 → 1 network. Hidden neurons use ReLU; the output is a weighted sum. Changing an input restarts the example. Values are dimensionless and weights are hand-set: the output is not a driving decision or safety score.</p>
+<div id="mlp-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 ### 3.5.2 Convolutional Neural Networks (CNN)
 
 **CNNs** reuse the same convolution filters across an image (Section 3.2.5), building feature maps that later layers combine into more complex patterns.
@@ -1840,6 +1860,26 @@ The [CNN architecture explorer](cnn-architecture-explorer.html) is available as 
 
 **RNNs** process sequences one step at a time, carrying a hidden state forward as memory. **LSTMs** and **GRUs** use gates to control what information is retained; they are used for tasks such as trajectory prediction and tracking. Their sequential computation can be slower to train than transformers (Section 3.5.5).
 
+#### Interactive: a recurrent state over time
+
+```{=html}
+<div id="rnn-explorer" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Motion sequence <select id="rnn-sequence"><option value="approach">Approaching</option><option value="recede">Moving away</option><option value="alternating">Alternating</option></select></label>
+<label>Memory weight <input type="range" id="rnn-memory" min="0" max="1" step="0.1" value="0.5"> <span id="rnn-memory-value"></span></label>
+<button type="button" id="rnn-step">Next time step</button>
+<button type="button" id="rnn-reset">Reset</button>
+</div>
+<div class="architecture-flow" aria-label="Recurrent processing stages">
+<div><strong>1. Input sequence</strong><output id="rnn-input"></output></div>
+<div><strong>2. Previous state</strong><output id="rnn-previous"></output></div>
+<div><strong>3. New state</strong><output id="rnn-state"></output></div>
+</div>
+<p class="aisw-hint">Step through four dimensionless motion measurements, starting with state 0. At each step, the same cell computes h = tanh(input + memory weight × previous state). Changing the sequence or memory weight resets the state. This is a simplified RNN, not an LSTM or GRU and not a trained tracker.</p>
+<div id="rnn-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 ### 3.5.4 [Encoder–Decoder Networks](#glossary-encoder-decoder) and [Autoencoders](#glossary-encoder-decoder)
 
 An **encoder** maps input to a compact [latent representation](#glossary-encoder-decoder); a **decoder** turns it into the desired output.
@@ -1849,6 +1889,30 @@ Input -> [ Encoder ] -> compact summary (latent) -> [ Decoder ] -> Output
 ```
 
 In an **autoencoder**, the decoder reconstructs the input, enabling unsupervised representation learning and anomaly detection. Encoder–decoder designs also support pixel-wise segmentation (for example, U-Net) and sequence prediction.
+
+#### Interactive: a bottleneck and reconstruction
+
+```{=html}
+<div id="encoder-explorer" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Sensor 1 <input type="range" id="encoder-input-1" min="0" max="1" step="0.1" value="0.2"> <span id="encoder-value-1"></span></label>
+<label>Sensor 2 <input type="range" id="encoder-input-2" min="0" max="1" step="0.1" value="0.8"> <span id="encoder-value-2"></span></label>
+<label>Sensor 3 <input type="range" id="encoder-input-3" min="0" max="1" step="0.1" value="0.4"> <span id="encoder-value-3"></span></label>
+<label>Sensor 4 <input type="range" id="encoder-input-4" min="0" max="1" step="0.1" value="0.6"> <span id="encoder-value-4"></span></label>
+<button type="button" id="encoder-step">Next stage</button>
+<button type="button" id="encoder-reset">Reset</button>
+</div>
+<div class="architecture-flow" aria-label="Encoder-decoder processing stages">
+<div><strong>1. Inputs</strong><output id="encoder-input"></output></div>
+<div><strong>2. Latent representation</strong><output id="encoder-latent"></output></div>
+<div><strong>3. Reconstruction</strong><output id="encoder-output"></output></div>
+</div>
+<p class="aisw-hint">The fixed encoder averages adjacent pairs of four dimensionless sensor values; the decoder repeats each average. Step through the 4 → 2 → 4 transformation and compare the reconstruction with the original. This is a hand-set linear autoencoder, not a trained model; a bottleneck can lose information.</p>
+<div id="encoder-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
+<script src="architecture-widgets.js"></script>
 
 ### 3.5.5 Transformers and Attention
 

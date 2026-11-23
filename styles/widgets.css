@@ -71,3 +71,29 @@
   font-size: .95rem;
   line-height: 1.6;
 }
+
+.architecture-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .6rem;
+  margin: .75rem 0;
+}
+
+.architecture-flow > div {
+  min-width: 0;
+  padding: .65rem;
+  border: 1px solid #d9dde5;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.architecture-flow strong,
+.architecture-flow output {
+  display: block;
+}
+
+.architecture-flow output {
+  margin-top: .35rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

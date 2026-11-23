@@ -15,6 +15,7 @@ project:
     - src/part-1/cnn-architecture-explorer.html
     - src/part-1/cnn-feature-explorer.html
     - src/part-1/training-widgets.js
+    - src/part-1/architecture-widgets.js
     - notebooks/part-1/07-model-architectures.ipynb
 
 website:
