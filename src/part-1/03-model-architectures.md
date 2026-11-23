@@ -1586,16 +1586,7 @@ The **learning rate** $\eta$ is the size of the step:
 
 Explore how different CNN architectures are organised, from a classic image classifier to modern networks used for object detection.
 
-```{=html}
-<iframe
-  src="cnn-architecture-explorer.html"
-  title="Interactive CNN architecture explorer: LeNet-5, ResNet-18, EfficientNet-B0 and YOLOv8"
-  width="100%"
-  height="1120"
-  loading="lazy"
-  style="border:0; border-radius:12px;">
-</iframe>
-```
+
 
 ### 3.3.5 [Mini-batches](#glossary-sgd) and [Stochastic Gradient Descent (SGD)](#glossary-sgd)
 
@@ -2153,7 +2144,16 @@ This complements the single-filter convolution stepper in [Section 3.2.5](#conv-
 
 </script>
 ```
-
+```{=html}
+<iframe
+  src="cnn-architecture-explorer.html"
+  title="Interactive CNN architecture explorer: LeNet-5, ResNet-18, EfficientNet-B0 and YOLOv8"
+  width="100%"
+  height="1120"
+  loading="lazy"
+  style="border:0; border-radius:12px;">
+</iframe>
+```
 ### 3.5.3 Recurrent Networks: [RNN](#glossary-rnn), [LSTM](#glossary-rnn) and [GRU](#glossary-rnn)
 
 **Idea.** A network with **memory**, designed for sequences — data where order matters, such as video frames, or the positions of a vehicle over time.
