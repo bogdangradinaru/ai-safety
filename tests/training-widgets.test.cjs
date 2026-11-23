@@ -13,7 +13,8 @@ function setup() {
     "schedule-kind": "step", "schedule-iteration": "0",
     "fit-model": "quadratic",
     "curves-scenario": "over", "curves-epoch": "20",
-    "hyper-rate": "0.1", "hyper-epochs": "40", "hyper-lambda": "0"
+    "hyper-rate": "0.05", "hyper-epochs": "80", "hyper-lambda": "0",
+    "hyper-batch": "4", "hyper-depth": "1", "hyper-width": "4", "hyper-optimiser": "sgd"
   };
   const elements = new Map();
   const context = new Proxy({}, {
@@ -113,16 +114,76 @@ test("model capacity illustrates underfitting and overfitting on held-out points
   assert.ok(overfit[0] < quadratic[0] && overfit[1] > quadratic[1], JSON.stringify({ overfit, quadratic }));
 });
 
-test("learning curves and hyperparameter runs react to selections", () => {
+test("learning curves react to selections", () => {
   const { get, trigger } = setup();
   assert.match(get("curves-stats").textContent, /Lowest displayed validation loss = .* at epoch (?!40)\d+/);
   trigger("curves-scenario", "change", "good");
   assert.match(get("curves-stats").textContent, /at epoch 40/);
+});
+
+test("hyperparameter runs use minibatches, architecture and optimiser selections", () => {
+  const { get, trigger } = setup();
   const baseline = get("hyper-stats").textContent;
-  assert.match(baseline, /Epoch 40/);
-  trigger("hyper-lambda", "change", "1");
+  assert.match(baseline, /Epoch 80 .*Parameters = 13 \| Updates = 160/);
+  trigger("hyper-batch", "change", "8");
+  assert.match(get("hyper-stats").textContent, /Parameters = 13 \| Updates = 80/);
   assert.notEqual(get("hyper-stats").textContent, baseline);
+  trigger("hyper-batch", "change", "4");
+  assert.equal(get("hyper-stats").textContent, baseline);
+  trigger("hyper-depth", "change", "2");
+  assert.match(get("hyper-stats").textContent, /Parameters = 33/);
+  trigger("hyper-width", "change", "2");
+  assert.match(get("hyper-stats").textContent, /Parameters = 13/);
+  const sgd = get("hyper-stats").textContent;
+  trigger("hyper-optimiser", "change", "momentum");
+  const momentum = get("hyper-stats").textContent;
+  assert.notEqual(momentum, sgd);
+  trigger("hyper-optimiser", "change", "adam");
+  assert.notEqual(get("hyper-stats").textContent, momentum);
+  assert.notEqual(get("hyper-stats").textContent, sgd);
+  const adam = get("hyper-stats").textContent;
+  trigger("hyper-lambda", "change", "1");
+  assert.notEqual(get("hyper-stats").textContent, adam);
+});
+
+test("one full-batch SGD update matches numerical gradients including L2", () => {
+  const { get, trigger } = setup();
+  trigger("hyper-width", "change", "2");
+  trigger("hyper-batch", "change", "8");
+  trigger("hyper-lambda", "change", "0.1");
+  trigger("hyper-epochs", "input", "1");
+
+  let state = 42;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  const bound = Math.sqrt(2);
+  const weights = Array.from({ length: 4 }, () => (2 * random() - 1) * bound);
+  const values = [...weights, 0, 0, 0];
+  const trainX = [-1, -0.75, -0.5, -0.25, 0.25, 0.5, 0.75, 1];
+  const trainY = [1.05, 0.43, 0.35, -0.02, 0.16, 0.18, 0.68, 0.94];
+  const validX = [-0.875, -0.625, -0.375, -0.125, 0.125, 0.375, 0.625, 0.875];
+  const predict = (p, x) => p[2] * Math.tanh(p[0] * x + p[4]) +
+    p[3] * Math.tanh(p[1] * x + p[5]) + p[6];
+  const mse = (p, xs, ys) => xs.reduce((sum, x, i) => sum + (predict(p, x) - ys[i]) ** 2, 0) / xs.length;
+  const objective = (p) => mse(p, trainX, trainY) + 0.1 * p.slice(0, 4).reduce((sum, w) => sum + w * w, 0);
+  const epsilon = 1e-5;
+  const updated = values.map((value, i) => {
+    const plus = values.slice(), minus = values.slice();
+    plus[i] += epsilon;
+    minus[i] -= epsilon;
+    return value - 0.05 * (objective(plus) - objective(minus)) / (2 * epsilon);
+  });
+  const match = get("hyper-stats").textContent.match(/Training MSE = (\d+\.\d+) \| Validation MSE = (\d+\.\d+)/);
+  assert.ok(match);
+  assert.ok(Math.abs(Number(match[1]) - mse(updated, trainX, trainY)) < 0.00006);
+  assert.ok(Math.abs(Number(match[2]) - mse(updated, validX, validX.map((x) => x * x))) < 0.00006);
+});
+
+test("unstable hyperparameter runs report divergence", () => {
+  const { get, trigger } = setup();
+  trigger("hyper-lambda", "change", "1");
   trigger("hyper-rate", "change", "1.5");
-  trigger("hyper-epochs", "input", "80");
   assert.match(get("hyper-stats").textContent, /Training diverged/);
 });

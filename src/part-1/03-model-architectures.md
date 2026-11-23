@@ -1762,12 +1762,16 @@ A **learning curve** plots the training loss and the validation loss against the
 
 <div id="hyper-widget" class="aisafety-widget">
 <div class="aisw-controls">
-<label>Learning rate <select id="hyper-rate"><option value="0.01">0.01</option><option value="0.1" selected>0.1</option><option value="0.5">0.5</option><option value="1.5">1.5</option></select></label>
-<label>Epochs <input type="range" id="hyper-epochs" min="1" max="80" step="1" value="40"> <span id="hyper-epochs-value"></span></label>
-<label>L2 strength <select id="hyper-lambda"><option value="0" selected>0</option><option value="0.1">0.1</option><option value="1">1</option></select></label>
+<label>Learning rate <select id="hyper-rate"><option value="0.01">0.01</option><option value="0.05" selected>0.05</option><option value="0.1">0.1</option><option value="0.5">0.5</option><option value="1.5">1.5</option></select></label>
+<label>Batch size <select id="hyper-batch"><option value="1">1</option><option value="2">2</option><option value="4" selected>4</option><option value="8">8 (full batch)</option></select></label>
+<label>Epochs <input type="range" id="hyper-epochs" min="1" max="200" step="1" value="80"> <span id="hyper-epochs-value"></span></label>
+<label>Hidden layers <select id="hyper-depth"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+<label>Neurons per layer <select id="hyper-width"><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option></select></label>
+<label>Optimiser <select id="hyper-optimiser"><option value="sgd" selected>SGD</option><option value="momentum">SGD + momentum (0.9)</option><option value="adam">Adam (β₁=0.9, β₂=0.999)</option></select></label>
+<label>L2 strength λ <select id="hyper-lambda"><option value="0" selected>0</option><option value="0.01">0.01</option><option value="0.1">0.1</option><option value="1">1</option></select></label>
 </div>
 <canvas id="hyper-canvas" width="560" height="250" role="img" aria-label="Training and validation mean squared error for selected hyperparameters"></canvas>
-<p class="aisw-hint">Train a quadratic regressor from scratch on fixed synthetic data with full-batch gradient descent. Blue is training MSE and orange is validation MSE (the L2 penalty is used for training but excluded from both displayed errors). Each change restarts the run; no test set is used.</p>
+<p class="aisw-hint">Train a small tanh neural network from scratch on eight noisy synthetic training points; eight separate points are used for validation. Blue is training MSE and orange is validation MSE, clipped at 1 on the plot. The L2 penalty applies to weights, not biases, and is excluded from both displayed errors. Each change restarts with a fixed seed and reproducible shuffled batches. An epoch visits all eight training examples, so smaller batches make more updates per epoch. No test set is used.</p>
 <div id="hyper-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 

@@ -259,21 +259,98 @@
   function hyperWidget() {
     if (!el("hyper-widget")) return;
     const rate = el("hyper-rate"), epochs = el("hyper-epochs"), lambda = el("hyper-lambda");
+    const batch = el("hyper-batch"), depth = el("hyper-depth"), width = el("hyper-width");
+    const optimiser = el("hyper-optimiser");
+
+    function randomGenerator(seed) {
+      let state = seed;
+      return () => {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+        return state / 4294967296;
+      };
+    }
+
     function draw() {
       const eta = Number(rate.value), count = Number(epochs.value), regularisation = Number(lambda.value);
-      let weights = [0, 0, 0], diverged = false;
+      const batchSize = Number(batch.value), hiddenLayers = Number(depth.value), neurons = Number(width.value);
+      const initialise = randomGenerator(42), shuffle = randomGenerator(123);
+      const sizes = [1, ...Array(hiddenLayers).fill(neurons), 1];
+      const parameter = (value) => ({ value, gradient: 0, first: 0, second: 0 });
+      const layers = sizes.slice(1).map((outputSize, layerIndex) => {
+        const inputSize = sizes[layerIndex];
+        const limit = Math.sqrt(6 / (inputSize + outputSize));
+        return {
+          weights: Array.from({ length: outputSize }, () =>
+            Array.from({ length: inputSize }, () => parameter((2 * initialise() - 1) * limit))),
+          biases: Array.from({ length: outputSize }, () => parameter(0))
+        };
+      });
+      const parameters = layers.flatMap((layer) => [
+        ...layer.weights.flat().map((p) => ({ p, isWeight: true })),
+        ...layer.biases.map((p) => ({ p, isWeight: false }))
+      ]);
+
+      function forward(x) {
+        const activations = [[x]];
+        layers.forEach((layer, index) => {
+          const previous = activations[index];
+          const output = layer.weights.map((row, i) => {
+            const sum = row.reduce((total, p, j) => total + p.value * previous[j], layer.biases[i].value);
+            return index === layers.length - 1 ? sum : Math.tanh(sum);
+          });
+          activations.push(output);
+        });
+        return activations;
+      }
+
+      let updates = 0, diverged = false;
       const training = [], validation = [];
       for (let epoch = 1; epoch <= count; epoch++) {
-        const gradient = [0, 0, 0];
-        trainX.forEach((x, i) => {
-          const features = [1, x, x * x];
-          const error = weights.reduce((sum, w, j) => sum + w * features[j], 0) - trainY[i];
-          features.forEach((feature, j) => { gradient[j] += 2 * error * feature / trainX.length; });
-        });
-        weights = weights.map((w, j) => w - eta * (gradient[j] + (j === 0 ? 0 : 2 * regularisation * w)));
-        const predict = (x) => weights[0] + weights[1] * x + weights[2] * x * x;
+        const order = trainX.map((_, i) => i);
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = Math.floor(shuffle() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        for (let start = 0; start < order.length; start += batchSize) {
+          const indices = order.slice(start, start + batchSize);
+          parameters.forEach(({ p }) => { p.gradient = 0; });
+          indices.forEach((example) => {
+            const activations = forward(trainX[example]);
+            let delta = [2 * (activations[layers.length][0] - trainY[example]) / indices.length];
+            for (let index = layers.length - 1; index >= 0; index--) {
+              const layer = layers[index], previous = activations[index];
+              const nextDelta = previous.map(() => 0);
+              layer.weights.forEach((row, i) => {
+                layer.biases[i].gradient += delta[i];
+                row.forEach((p, j) => {
+                  p.gradient += delta[i] * previous[j];
+                  nextDelta[j] += p.value * delta[i];
+                });
+              });
+              delta = nextDelta.map((value, j) => value * (1 - previous[j] ** 2));
+            }
+          });
+          updates++;
+          parameters.forEach(({ p, isWeight }) => {
+            const gradient = p.gradient + (isWeight ? 2 * regularisation * p.value : 0);
+            if (optimiser.value === "momentum") {
+              p.first = 0.9 * p.first + gradient;
+              p.value -= eta * p.first;
+            } else if (optimiser.value === "adam") {
+              p.first = 0.9 * p.first + 0.1 * gradient;
+              p.second = 0.999 * p.second + 0.001 * gradient ** 2;
+              const mean = p.first / (1 - 0.9 ** updates);
+              const variance = p.second / (1 - 0.999 ** updates);
+              p.value -= eta * mean / (Math.sqrt(variance) + 1e-8);
+            } else {
+              p.value -= eta * gradient;
+            }
+          });
+        }
+        const predict = (x) => forward(x)[layers.length][0];
         const tr = mse(trainX, trainY, predict), val = mse(validX, validY, predict);
-        if (!Number.isFinite(tr) || !Number.isFinite(val) || tr > 1e6 || val > 1e6) {
+        if (!Number.isFinite(tr) || !Number.isFinite(val) || tr > 1e6 || val > 1e6 ||
+            parameters.some(({ p }) => !Number.isFinite(p.value))) {
           diverged = true;
           break;
         }
@@ -283,14 +360,21 @@
       const last = training.length - 1;
       plot(el("hyper-canvas"), [0, count], [0, 1], [
         { data: training, colour: colours.blue }, { data: validation, colour: colours.orange }
-      ], [], "epoch", "MSE (clipped at 1)");
+      ], training.length === 1 ? [
+        { x: training[0][0], y: training[0][1], colour: colours.blue },
+        { x: validation[0][0], y: validation[0][1], colour: colours.orange }
+      ] : [], "epoch", "MSE (clipped at 1)");
       el("hyper-stats").textContent = last >= 0
-        ? `Epoch ${training[last][0]} | Training MSE = ${training[last][1].toFixed(4)} | Validation MSE = ${validation[last][1].toFixed(4)}.` + (diverged ? " Training diverged; later epochs are not shown." : "")
-        : "Training diverged before the first epoch completed.";
+        ? `Epoch ${training[last][0]} | Training MSE = ${training[last][1].toFixed(4)} | Validation MSE = ${validation[last][1].toFixed(4)} | Parameters = ${parameters.length} | ${diverged ? "Attempted updates" : "Updates"} = ${updates}.` + (diverged ? " Training diverged; later epochs are not shown." : "")
+        : `Training diverged before the first epoch completed. Parameters = ${parameters.length} | Attempted updates = ${updates}.`;
     }
     rate.addEventListener("change", draw);
     epochs.addEventListener("input", draw);
     lambda.addEventListener("change", draw);
+    batch.addEventListener("change", draw);
+    depth.addEventListener("change", draw);
+    width.addEventListener("change", draw);
+    optimiser.addEventListener("change", draw);
     draw();
   }
 
