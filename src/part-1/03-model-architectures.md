@@ -1808,12 +1808,30 @@ An **MLP** (fully connected or dense network) passes a vector through layers whe
 <button type="button" id="mlp-step">Next layer</button>
 <button type="button" id="mlp-reset">Reset</button>
 </div>
+<div class="architecture-graph-scroll">
+<svg class="architecture-graph" viewBox="0 0 600 270" aria-hidden="true">
+<text class="graph-heading" x="85" y="24">Inputs</text><text class="graph-heading" x="300" y="24">Hidden · ReLU</text><text class="graph-heading" x="515" y="24">Output</text>
+<g class="graph-edges graph-stage-1">
+<line x1="120" y1="85" x2="265" y2="85"/><line x1="120" y1="85" x2="265" y2="195"/>
+<line x1="120" y1="195" x2="265" y2="85"/><line x1="120" y1="195" x2="265" y2="195"/>
+</g>
+<g class="graph-edges graph-stage-2"><line x1="335" y1="85" x2="480" y2="140"/><line x1="335" y1="195" x2="480" y2="140"/></g>
+<g class="graph-node graph-input"><circle cx="85" cy="85" r="34"/><text id="mlp-graph-input-1" x="85" y="90"></text></g>
+<g class="graph-node graph-input"><circle cx="85" cy="195" r="34"/><text id="mlp-graph-input-2" x="85" y="200"></text></g>
+<g class="graph-node graph-stage-1"><circle cx="300" cy="85" r="34"/><text id="mlp-graph-hidden-1" x="300" y="90"></text></g>
+<g class="graph-node graph-stage-1"><circle cx="300" cy="195" r="34"/><text id="mlp-graph-hidden-2" x="300" y="200"></text></g>
+<g class="graph-node graph-stage-2"><circle cx="515" cy="140" r="34"/><text id="mlp-graph-output" x="515" y="145"></text></g>
+<text class="graph-caption" x="85" y="135">speed</text><text class="graph-caption" x="85" y="245">proximity</text>
+<text class="graph-caption" x="300" y="135">neuron 1</text><text class="graph-caption" x="300" y="245">neuron 2</text>
+<text class="graph-caption" x="515" y="195">weighted sum</text>
+</svg>
+</div>
 <div class="architecture-flow" aria-label="MLP processing stages">
 <div><strong>1. Inputs</strong><output id="mlp-input"></output></div>
 <div><strong>2. Hidden layer</strong><output id="mlp-hidden"></output></div>
 <div><strong>3. Output</strong><output id="mlp-output"></output></div>
 </div>
-<p class="aisw-hint">Move the sliders and step through a fully connected 2 → 2 → 1 network. Hidden neurons use ReLU; the output is a weighted sum. Changing an input restarts the example. Values are dimensionless and weights are hand-set: the output is not a driving decision or safety score.</p>
+<p class="aisw-hint">Move the sliders and step through a fully connected 2 → 2 → 1 network. Lines show connections, and nodes reveal values as they are computed. Hidden neurons use ReLU; the output is a weighted sum. Changing an input restarts the example. Values are dimensionless and weights are hand-set: the output is not a driving decision or safety score.</p>
 <div id="mlp-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -1870,12 +1888,25 @@ The [CNN architecture explorer](cnn-architecture-explorer.html) is available as 
 <button type="button" id="rnn-step">Next time step</button>
 <button type="button" id="rnn-reset">Reset</button>
 </div>
+<div class="architecture-graph-scroll">
+<svg class="architecture-graph" viewBox="0 0 600 230" aria-hidden="true">
+<defs><marker id="rnn-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8091a5"/></marker></defs>
+<text class="graph-heading" x="300" y="24">The same recurrent cell at successive time steps →</text>
+<g class="graph-edges" marker-end="url(#rnn-arrow)"><line x1="113" y1="126" x2="207" y2="126"/><line x1="253" y1="126" x2="347" y2="126"/><line x1="393" y1="126" x2="487" y2="126"/></g>
+<text class="graph-caption" x="25" y="132">h₀ = 0</text><line class="graph-initial-edge" x1="48" y1="126" x2="67" y2="126" marker-end="url(#rnn-arrow)"/>
+<g id="rnn-graph-cell-1" class="graph-cell"><text class="graph-caption" x="90" y="51">t = 1</text><text id="rnn-graph-input-1" class="graph-caption" x="90" y="74"></text><line class="graph-input-edge" x1="90" y1="81" x2="90" y2="99"/><rect x="67" y="100" width="46" height="52" rx="8"/><text id="rnn-graph-state-1" class="graph-value" x="90" y="132"></text><text class="graph-caption" x="90" y="180">h₁</text></g>
+<g id="rnn-graph-cell-2" class="graph-cell"><text class="graph-caption" x="230" y="51">t = 2</text><text id="rnn-graph-input-2" class="graph-caption" x="230" y="74"></text><line class="graph-input-edge" x1="230" y1="81" x2="230" y2="99"/><rect x="207" y="100" width="46" height="52" rx="8"/><text id="rnn-graph-state-2" class="graph-value" x="230" y="132"></text><text class="graph-caption" x="230" y="180">h₂</text></g>
+<g id="rnn-graph-cell-3" class="graph-cell"><text class="graph-caption" x="370" y="51">t = 3</text><text id="rnn-graph-input-3" class="graph-caption" x="370" y="74"></text><line class="graph-input-edge" x1="370" y1="81" x2="370" y2="99"/><rect x="347" y="100" width="46" height="52" rx="8"/><text id="rnn-graph-state-3" class="graph-value" x="370" y="132"></text><text class="graph-caption" x="370" y="180">h₃</text></g>
+<g id="rnn-graph-cell-4" class="graph-cell"><text class="graph-caption" x="510" y="51">t = 4</text><text id="rnn-graph-input-4" class="graph-caption" x="510" y="74"></text><line class="graph-input-edge" x1="510" y1="81" x2="510" y2="99"/><rect x="487" y="100" width="46" height="52" rx="8"/><text id="rnn-graph-state-4" class="graph-value" x="510" y="132"></text><text class="graph-caption" x="510" y="180">h₄</text></g>
+<text class="graph-caption" x="300" y="211">Each state passes to the next cell</text>
+</svg>
+</div>
 <div class="architecture-flow" aria-label="Recurrent processing stages">
 <div><strong>1. Input sequence</strong><output id="rnn-input"></output></div>
 <div><strong>2. Previous state</strong><output id="rnn-previous"></output></div>
 <div><strong>3. New state</strong><output id="rnn-state"></output></div>
 </div>
-<p class="aisw-hint">Step through four dimensionless motion measurements, starting with state 0. At each step, the same cell computes h = tanh(input + memory weight × previous state). Changing the sequence or memory weight resets the state. This is a simplified RNN, not an LSTM or GRU and not a trained tracker.</p>
+<p class="aisw-hint">Step through four dimensionless motion measurements, starting with state 0. Each box shows the state produced at that time; a line carries it to the next copy of the same cell. The cell computes h = tanh(input + memory weight × previous state). Changing the sequence or memory weight resets the state. This is a simplified RNN, not an LSTM or GRU and not a trained tracker.</p>
 <div id="rnn-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -1901,6 +1932,30 @@ In an **autoencoder**, the decoder reconstructs the input, enabling unsupervised
 <label>Sensor 4 <input type="range" id="encoder-input-4" min="0" max="1" step="0.1" value="0.6"> <span id="encoder-value-4"></span></label>
 <button type="button" id="encoder-step">Next stage</button>
 <button type="button" id="encoder-reset">Reset</button>
+</div>
+<div class="architecture-graph-scroll">
+<svg class="architecture-graph" viewBox="0 0 600 320" aria-hidden="true">
+<text class="graph-heading" x="85" y="24">4 inputs</text><text class="graph-heading" x="300" y="24">2 latent values</text><text class="graph-heading" x="515" y="24">4 reconstructed</text>
+<g class="graph-edges graph-stage-1">
+<line x1="113" y1="70" x2="272" y2="110"/><line x1="113" y1="130" x2="272" y2="110"/>
+<line x1="113" y1="190" x2="272" y2="230"/><line x1="113" y1="250" x2="272" y2="230"/>
+</g>
+<g class="graph-edges graph-stage-2">
+<line x1="328" y1="110" x2="487" y2="70"/><line x1="328" y1="110" x2="487" y2="130"/>
+<line x1="328" y1="230" x2="487" y2="190"/><line x1="328" y1="230" x2="487" y2="250"/>
+</g>
+<g class="graph-node graph-input"><circle cx="85" cy="70" r="27"/><text id="encoder-graph-input-1" x="85" y="75"></text></g>
+<g class="graph-node graph-input"><circle cx="85" cy="130" r="27"/><text id="encoder-graph-input-2" x="85" y="135"></text></g>
+<g class="graph-node graph-input"><circle cx="85" cy="190" r="27"/><text id="encoder-graph-input-3" x="85" y="195"></text></g>
+<g class="graph-node graph-input"><circle cx="85" cy="250" r="27"/><text id="encoder-graph-input-4" x="85" y="255"></text></g>
+<g class="graph-node graph-stage-1"><circle cx="300" cy="110" r="27"/><text id="encoder-graph-latent-1" x="300" y="115"></text></g>
+<g class="graph-node graph-stage-1"><circle cx="300" cy="230" r="27"/><text id="encoder-graph-latent-2" x="300" y="235"></text></g>
+<g class="graph-node graph-stage-2"><circle cx="515" cy="70" r="27"/><text id="encoder-graph-output-1" x="515" y="75"></text></g>
+<g class="graph-node graph-stage-2"><circle cx="515" cy="130" r="27"/><text id="encoder-graph-output-2" x="515" y="135"></text></g>
+<g class="graph-node graph-stage-2"><circle cx="515" cy="190" r="27"/><text id="encoder-graph-output-3" x="515" y="195"></text></g>
+<g class="graph-node graph-stage-2"><circle cx="515" cy="250" r="27"/><text id="encoder-graph-output-4" x="515" y="255"></text></g>
+<text class="graph-caption" x="190" y="300">Encoder: pair averages →</text><text class="graph-caption" x="410" y="300">Decoder: repeat →</text>
+</svg>
 </div>
 <div class="architecture-flow" aria-label="Encoder-decoder processing stages">
 <div><strong>1. Inputs</strong><output id="encoder-input"></output></div>

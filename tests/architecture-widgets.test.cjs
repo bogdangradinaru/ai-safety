@@ -18,7 +18,8 @@ function setup() {
     getElementById(id) {
       if (!elements.has(id)) {
         elements.set(id, {
-          value: defaults[id] || "", textContent: "", disabled: false, listeners: {},
+          value: defaults[id] || "", textContent: "", disabled: false, listeners: {}, attributes: {},
+          setAttribute(name, value) { this.attributes[name] = value; },
           addEventListener(type, handler) { this.listeners[type] = handler; }
         });
       }
@@ -94,4 +95,50 @@ test("autoencoder shows information loss and exact reconstructions", () => {
   trigger("encoder-step", "click");
   assert.equal(get("encoder-output").textContent, "[0.20, 0.20, 0.40, 0.40]");
   assert.match(get("encoder-stats").textContent, /MSE = 0\.0000/);
+});
+
+test("graphs reveal and reset calculated node values by stage", () => {
+  const { get, trigger } = setup();
+  assert.equal(get("mlp-graph-input-1").textContent, "0.40");
+  assert.equal(get("mlp-graph-hidden-1").textContent, "?");
+  assert.equal(get("mlp-explorer").attributes["data-stage"], "0");
+  trigger("mlp-step", "click");
+  assert.equal(get("mlp-graph-hidden-1").textContent, "0.50");
+  assert.equal(get("mlp-graph-output").textContent, "?");
+  assert.equal(get("mlp-explorer").attributes["data-stage"], "1");
+  trigger("mlp-step", "click");
+  assert.equal(get("mlp-graph-output").textContent, "0.45");
+  assert.equal(get("mlp-explorer").attributes["data-stage"], "2");
+  trigger("mlp-speed", "input", "1");
+  assert.equal(get("mlp-graph-input-1").textContent, "1.00");
+  assert.equal(get("mlp-graph-hidden-1").textContent, "?");
+  assert.equal(get("mlp-explorer").attributes["data-stage"], "0");
+
+  assert.equal(get("encoder-graph-latent-1").textContent, "?");
+  trigger("encoder-step", "click");
+  assert.equal(get("encoder-graph-latent-1").textContent, "0.50");
+  assert.equal(get("encoder-graph-output-1").textContent, "?");
+  trigger("encoder-step", "click");
+  assert.equal(get("encoder-graph-output-4").textContent, "0.50");
+  assert.equal(get("encoder-explorer").attributes["data-stage"], "2");
+  trigger("encoder-reset", "click");
+  assert.equal(get("encoder-graph-output-4").textContent, "?");
+});
+
+test("RNN graph retains each computed state and highlights the current step", () => {
+  const { get, trigger } = setup();
+  assert.equal(get("rnn-graph-input-1").textContent, "x = 0.2");
+  assert.equal(get("rnn-graph-cell-1").attributes["data-status"], "pending");
+  trigger("rnn-step", "click");
+  assert.equal(get("rnn-graph-state-1").textContent, Math.tanh(0.2).toFixed(2));
+  assert.equal(get("rnn-graph-cell-1").attributes["data-status"], "current");
+  trigger("rnn-step", "click");
+  assert.equal(get("rnn-graph-state-1").textContent, Math.tanh(0.2).toFixed(2));
+  assert.equal(get("rnn-graph-state-2").textContent, Math.tanh(0.4 + 0.5 * Math.tanh(0.2)).toFixed(2));
+  assert.equal(get("rnn-graph-cell-1").attributes["data-status"], "done");
+  assert.equal(get("rnn-graph-cell-2").attributes["data-status"], "current");
+  trigger("rnn-sequence", "change", "recede");
+  assert.equal(get("rnn-graph-input-1").textContent, "x = 0.8");
+  assert.equal(get("rnn-graph-state-1").textContent, "?");
+  assert.equal(get("rnn-graph-cell-2").attributes["data-status"], "pending");
 });

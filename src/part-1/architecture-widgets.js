@@ -13,6 +13,10 @@
       const x = Number(speed.value), y = Number(proximity.value);
       const hidden = [Math.max(0, x + y - 0.5), Math.max(0, x - y + 0.2)];
       const output = 0.7 * hidden[0] - 0.4 * hidden[1] + 0.1;
+      el("mlp-explorer").setAttribute("data-stage", String(stage));
+      [x, y].forEach((value, i) => { el(`mlp-graph-input-${i + 1}`).textContent = value.toFixed(2); });
+      hidden.forEach((value, i) => { el(`mlp-graph-hidden-${i + 1}`).textContent = stage >= 1 ? value.toFixed(2) : "?"; });
+      el("mlp-graph-output").textContent = stage >= 2 ? output.toFixed(2) : "?";
       el("mlp-speed-value").textContent = x.toFixed(1);
       el("mlp-proximity-value").textContent = y.toFixed(1);
       el("mlp-input").textContent = format([x, y]);
@@ -42,10 +46,16 @@
       recede: [0.8, 0.6, 0.4, 0.2],
       alternating: [0.8, -0.8, 0.8, -0.8]
     };
-    let step = 0, state = 0, previous = 0;
+    let step = 0, state = 0, previous = 0, history = [];
 
     function draw() {
       const values = sequences[sequence.value];
+      values.forEach((value, i) => {
+        el(`rnn-graph-input-${i + 1}`).textContent = `x = ${value.toFixed(1)}`;
+        el(`rnn-graph-state-${i + 1}`).textContent = i < step ? history[i].toFixed(2) : "?";
+        const status = i === step - 1 ? "current" : i < step ? "done" : "pending";
+        el(`rnn-graph-cell-${i + 1}`).setAttribute("data-status", status);
+      });
       el("rnn-memory-value").textContent = Number(memory.value).toFixed(1);
       el("rnn-input").textContent = format(values);
       el("rnn-previous").textContent = step ? previous.toFixed(3) : "0.000 (initial)";
@@ -56,12 +66,13 @@
       el("rnn-step").disabled = step === values.length;
     }
 
-    function reset() { step = 0; state = 0; previous = 0; draw(); }
+    function reset() { step = 0; state = 0; previous = 0; history = []; draw(); }
     el("rnn-step").addEventListener("click", () => {
       const values = sequences[sequence.value];
       if (step < values.length) {
         previous = state;
         state = Math.tanh(values[step] + Number(memory.value) * previous);
+        history.push(state);
         step++;
       }
       draw();
@@ -82,6 +93,10 @@
       const latent = [(values[0] + values[1]) / 2, (values[2] + values[3]) / 2];
       const reconstructed = [latent[0], latent[0], latent[1], latent[1]];
       const error = values.reduce((sum, value, i) => sum + (value - reconstructed[i]) ** 2, 0) / values.length;
+      el("encoder-explorer").setAttribute("data-stage", String(stage));
+      values.forEach((value, i) => { el(`encoder-graph-input-${i + 1}`).textContent = value.toFixed(2); });
+      latent.forEach((value, i) => { el(`encoder-graph-latent-${i + 1}`).textContent = stage >= 1 ? value.toFixed(2) : "?"; });
+      reconstructed.forEach((value, i) => { el(`encoder-graph-output-${i + 1}`).textContent = stage >= 2 ? value.toFixed(2) : "?"; });
       values.forEach((value, i) => { el(`encoder-value-${i + 1}`).textContent = value.toFixed(1); });
       el("encoder-input").textContent = format(values);
       el("encoder-latent").textContent = stage >= 1 ? format(latent) : "Not computed";

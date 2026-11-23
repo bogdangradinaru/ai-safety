@@ -97,3 +97,51 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+
+.architecture-graph-scroll {
+  overflow-x: auto;
+  margin: .75rem 0;
+  border: 1px solid #d9dde5;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.architecture-graph {
+  display: block;
+  width: 100%;
+  min-width: 500px;
+  height: auto;
+}
+
+.architecture-graph text {
+  text-anchor: middle;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.graph-heading { fill: #34475a; font-size: 15px; font-weight: 700; }
+.graph-caption { fill: #5b6475; font-size: 12px; }
+.graph-edges line, .graph-input-edge, .graph-initial-edge {
+  stroke: #b7c1ce;
+  stroke-width: 2;
+}
+.graph-node circle, .graph-cell rect {
+  fill: #f0f3f6;
+  stroke: #aab8c8;
+  stroke-width: 2;
+}
+.graph-node text, .graph-value { fill: #526272; font-size: 14px; font-weight: 700; }
+.graph-input circle { fill: #e4f0ff; stroke: #3475b9; }
+.aisafety-widget[data-stage="1"] .graph-stage-1 circle,
+.aisafety-widget[data-stage="2"] .graph-stage-1 circle,
+.aisafety-widget[data-stage="2"] .graph-stage-2 circle {
+  fill: #e6f4eb;
+  stroke: #31936f;
+}
+.aisafety-widget[data-stage="1"] .graph-stage-1 line,
+.aisafety-widget[data-stage="2"] .graph-stage-1 line,
+.aisafety-widget[data-stage="2"] .graph-stage-2 line {
+  stroke: #31936f;
+  stroke-width: 3;
+}
+.graph-cell[data-status="done"] rect { fill: #e6f4eb; stroke: #31936f; }
+.graph-cell[data-status="current"] rect { fill: #e4f0ff; stroke: #3475b9; stroke-width: 3; }
