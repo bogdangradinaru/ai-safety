@@ -1749,6 +1749,7 @@ A convolutional operation is the core building block, but a CNN uses many filter
 
 This complements the single-filter convolution stepper in [Section 3.2.5](#conv-widget): here the focus is the role of feature maps inside an image-focused network.
 
+```{=html}
 <div id="cnn-auto-widget" class="aisafety-widget" aria-label="Automotive CNN feature explorer">
   <div class="aisw-controls cnn-controls">
     <label>camera scene
@@ -2136,6 +2137,7 @@ This complements the single-filter convolution stepper in [Section 3.2.5](#conv-
 })();
 
 </script>
+```
 
 ### 3.5.3 Recurrent Networks: [RNN](#glossary-rnn), [LSTM](#glossary-rnn) and [GRU](#glossary-rnn)
 
