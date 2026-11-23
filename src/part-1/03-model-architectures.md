@@ -1598,6 +1598,19 @@ Some vocabulary:
 - **Iteration:** one update using one mini-batch.
 - **Epoch:** one full pass through the entire training set.
 
+#### Try it: mini-batch updates
+
+<div id="batch-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Batch size <select id="batch-size"><option>1</option><option>2</option><option>4</option><option selected>8</option></select></label>
+<button type="button" id="batch-step">Next update</button>
+<button type="button" id="batch-reset">Reset</button>
+</div>
+<canvas id="batch-canvas" width="560" height="250" role="img" aria-label="Training targets and current prediction"></canvas>
+<p class="aisw-hint">Fit a constant prediction to eight fixed targets with squared-error loss. Blue dots are the current mini-batch; grey dots are the remaining examples. Compare the mini-batch gradient with the full-dataset gradient. A fixed shuffled order is repeated each epoch so the experiment is reproducible. Changing batch size resets it.</p>
+<div id="batch-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+
 ### 3.3.6 Optimisation algorithms
 
 An [**optimiser**](#glossary-optimiser) is the rule that turns gradients into parameter updates. Plain SGD is the starting point, and the others improve on it.
@@ -1614,6 +1627,20 @@ In the update rules below, [$g$](#notation-gradient) denotes the current gradien
 
 > **Rule of thumb:** Adam/AdamW usually works well with little tuning, which makes it a good first choice. SGD with momentum often needs more tuning but is still popular for training CNNs.
 
+#### Try it: compare optimisers
+
+<div id="optim-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Optimiser <select id="optim-method"><option value="sgd">SGD</option><option value="momentum">SGD with momentum</option><option value="rmsprop">RMSprop</option><option value="adam">Adam</option></select></label>
+<label>Learning rate <input type="range" id="optim-rate" min="0.01" max="0.25" step="0.01" value="0.10"> <span id="optim-rate-value"></span></label>
+<button type="button" id="optim-step">Step</button>
+<button type="button" id="optim-reset">Reset</button>
+</div>
+<canvas id="optim-canvas" width="560" height="300" role="img" aria-label="Optimiser path on a two-dimensional quadratic loss"></canvas>
+<p class="aisw-hint">Minimise L(x, y) = (x² + 10y²)/2 from (4, 4). Each point is an update; the minimum is at (0, 0). All methods use the exact same gradient, with no mini-batch noise. Changing the method or learning rate restarts the path.</p>
+<div id="optim-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+
 ### 3.3.7 [Learning-rate schedules](#glossary-learning-rate-schedule)
 
 The best learning rate is not constant during training: large steps are useful at the start, and small steps are better at the end for settling precisely into a good solution. A **schedule** changes $\eta$ over time:
@@ -1622,6 +1649,18 @@ The best learning rate is not constant during training: large steps are useful a
 - **Cosine annealing:** decrease $\eta$ smoothly following a cosine curve: $\eta_t = \eta_{min} + \tfrac{1}{2}(\eta_{max}-\eta_{min})\big(1+\cos(\pi t/T)\big)$.
 - **Warm-up:** start with a very small $\eta$ and increase it over the first few iterations, which avoids unstable early steps.
 - **One-cycle:** warm up to a maximum and then anneal down to near zero.
+
+#### Try it: inspect schedules
+
+<div id="schedule-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Schedule <select id="schedule-kind"><option value="step">Step decay</option><option value="cosine">Cosine annealing</option><option value="warmup">Warm-up then constant</option><option value="cycle">One-cycle</option></select></label>
+<label>Iteration <input type="range" id="schedule-iteration" min="0" max="40" step="1" value="0"> <span id="schedule-iteration-value"></span></label>
+</div>
+<canvas id="schedule-canvas" width="560" height="250" role="img" aria-label="Learning rate against iteration"></canvas>
+<p class="aisw-hint">All examples use 40 iterations and a maximum learning rate of 0.1. Move the slider to inspect the rate at each iteration; these are illustrative schedules, not a training run.</p>
+<div id="schedule-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
 
 ### 3.3.8 [Gradient clipping](#glossary-gradient-clipping)
 
@@ -1660,6 +1699,17 @@ The test set must stay untouched during development; otherwise the final score i
 
 Overfitting is more likely when the model has many parameters compared with the amount (or variety) of data.
 
+#### Try it: fit and generalisation
+
+<div id="fit-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Model <select id="fit-model"><option value="linear">Linear (degree 1)</option><option value="quadratic" selected>Quadratic (degree 2)</option><option value="interpolating">Interpolating (degree 7)</option></select></label>
+</div>
+<canvas id="fit-canvas" width="560" height="300" role="img" aria-label="Fitted curve compared with training and validation points"></canvas>
+<p class="aisw-hint">The same eight noisy training points are fitted in each case. Blue points are used to fit the curve; orange points are held out for validation. The degree-7 curve passes through every training point but can oscillate between them.</p>
+<div id="fit-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+
 ### 3.4.3 Learning curves
 
 A **learning curve** plots the training loss and the validation loss against the number of epochs. It is the main diagnostic tool:
@@ -1670,6 +1720,18 @@ A **learning curve** plots the training loss and the validation loss against the
 | Training loss low, validation loss high (a gap) | Overfitting | More data, augmentation, [regularisation](#glossary-regularisation), smaller model |
 | Both losses low and close together | Good fit | Done (or fine-tune) |
 | Validation loss starts to rise while training loss keeps falling | Overfitting has begun | [Early stopping](#glossary-regularisation) |
+
+#### Try it: read learning curves
+
+<div id="curves-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Scenario <select id="curves-scenario"><option value="under">Underfitting</option><option value="good">Good fit</option><option value="over" selected>Overfitting</option></select></label>
+<label>Epoch <input type="range" id="curves-epoch" min="1" max="40" step="1" value="20"> <span id="curves-epoch-value"></span></label>
+</div>
+<canvas id="curves-canvas" width="560" height="250" role="img" aria-label="Illustrative training and validation loss curves by epoch"></canvas>
+<p class="aisw-hint">These curves are synthetic examples, not measured training runs. Blue is training loss; orange is validation loss. The reported best epoch is where the validation loss is lowest over the displayed 40 epochs.</p>
+<div id="curves-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
 
 ### 3.4.4 Regularisation
 
@@ -1695,6 +1757,21 @@ A **learning curve** plots the training loss and the validation loss against the
 | **Depth and width** | Number of layers / neurons per layer | More capacity, but a higher risk of overfitting |
 | **Optimiser and its settings** | e.g. Adam's $\beta_1$, $\beta_2$, momentum | Affects speed and stability |
 | **Regularisation strength** | Weight-decay $\lambda$, dropout rate $p$ | Trade-off between underfitting and overfitting |
+
+#### Try it: change training hyperparameters
+
+<div id="hyper-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Learning rate <select id="hyper-rate"><option value="0.01">0.01</option><option value="0.1" selected>0.1</option><option value="0.5">0.5</option><option value="1.5">1.5</option></select></label>
+<label>Epochs <input type="range" id="hyper-epochs" min="1" max="80" step="1" value="40"> <span id="hyper-epochs-value"></span></label>
+<label>L2 strength <select id="hyper-lambda"><option value="0" selected>0</option><option value="0.1">0.1</option><option value="1">1</option></select></label>
+</div>
+<canvas id="hyper-canvas" width="560" height="250" role="img" aria-label="Training and validation mean squared error for selected hyperparameters"></canvas>
+<p class="aisw-hint">Train a quadratic regressor from scratch on fixed synthetic data with full-batch gradient descent. Blue is training MSE and orange is validation MSE (the L2 penalty is used for training but excluded from both displayed errors). Each change restarts the run; no test set is used.</p>
+<div id="hyper-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+
+<script src="training-widgets.js"></script>
 
 ### 3.4.6 Tuning hyperparameters
 
