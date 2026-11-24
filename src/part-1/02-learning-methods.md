@@ -53,6 +53,21 @@ model using annotated images from the KITTI dataset.
 - Lane detection.
 - Semantic segmentation.
 
+#### Try it: labels shape a classifier
+
+```{=html}
+<div id="supervised-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Width threshold <input type="range" id="supervised-threshold" min="0.1" max="0.9" step="0.01" value="0.5"> <span id="supervised-threshold-value"></span></label>
+<label>Training labels <select id="supervised-labels"><option value="clean">Clean</option><option value="one-flipped">One wrong label</option><option value="three-flipped">Three wrong labels</option></select></label>
+<button type="button" id="supervised-reset">Reset</button>
+</div>
+<canvas id="supervised-canvas" width="620" height="300" role="img" aria-label="Labelled examples and a movable classification threshold"></canvas>
+<p class="aisw-hint">Move the decision boundary. Blue and orange are the supplied class labels; red rings mark incorrect training labels. The reported accuracy always uses the underlying true labels, so it exposes what a corrupted dataset can hide.</p>
+<div id="supervised-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 ### Automatic labelling and supervised learning
 
 Labels do not necessarily have to be created manually.
@@ -83,6 +98,23 @@ Self-supervised learning creates training objectives — known as **pretext task
 - Pre-training perception models before fine-tuning on a smaller labelled dataset.
 - Learning useful features from unlabeled sensor data (camera, LiDAR) collected across a vehicle fleet.
 
+#### Try it: create a learning signal from the image
+
+```{=html}
+<div id="self-supervised-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Pretext task <select id="self-task"><option value="mask">Masked-image prediction</option><option value="contrast">Contrastive views</option></select></label>
+<label>Augmentation <input type="range" id="self-strength" min="0.2" max="0.8" step="0.1" value="0.4"> <span id="self-strength-value"></span></label>
+<button type="button" id="self-train">Training round</button>
+<button type="button" id="self-reset">Reset</button>
+</div>
+<canvas id="self-supervised-canvas" width="620" height="260" role="img" aria-label="Masked image recovery or contrastive image views"></canvas>
+<div id="self-task-output" class="aisw-stats"></div>
+<p class="aisw-hint">The model derives its own target from the image. Masking asks it to recover hidden content; contrastive learning asks it to keep two augmented views of the same scene close in representation space. Neither task needs an object label.</p>
+<div id="self-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 > **Note:** Self-supervised pretraining does not remove the need for labelled data — it typically reduces how much labelled data is required for a given level of performance, with the model later fine-tuned via supervised learning (Section 2.2).
 
 ## 2.4 Unsupervised Learning
@@ -101,6 +133,21 @@ Unsupervised learning identifies patterns, structures, or representations in dat
 - Grouping similar driving scenarios (e.g. for test-case selection or dataset curation).
 - Detecting anomalies in vehicle sensor data.
 
+#### Try it: discover groups with k-means
+
+```{=html}
+<div id="unsupervised-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Number of clusters k <input type="range" id="cluster-count" min="2" max="4" step="1" value="3"> <span id="cluster-count-value"></span></label>
+<button type="button" id="cluster-step">Run iteration</button>
+<button type="button" id="cluster-reset">Reset centres</button>
+</div>
+<canvas id="unsupervised-canvas" width="620" height="320" role="img" aria-label="Unlabelled points clustered using k-means"></canvas>
+<p class="aisw-hint">Each run assigns every scenario to its nearest centre, then moves the centres to the mean of their assigned points. The algorithm finds geometric structure without knowing a safety-relevant class name.</p>
+<div id="cluster-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 ## 2.5 Semi-Supervised Learning
 
 Semi-supervised learning combines a small amount of labelled data with a larger pool of unlabelled data. This is particularly relevant in automotive AI, where raw sensor data is abundant but manual annotation (e.g. drawing bounding boxes or segmentation masks) is expensive and slow.
@@ -111,6 +158,22 @@ A common technique is **pseudo-labelling**: a model trained on the available lab
 
 - Extending a small, manually labelled perception dataset with pseudo-labelled data from a large unlabelled fleet dataset.
 - Reducing annotation cost for rare object classes (e.g. construction equipment, animals).
+
+#### Try it: build a larger training set with pseudo-labels
+
+```{=html}
+<div id="semi-supervised-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Confidence threshold <input type="range" id="pseudo-threshold" min="0.55" max="0.95" step="0.05" value="0.65"> <span id="pseudo-threshold-value"></span></label>
+<label>Seed labels <select id="pseudo-seeds"><option value="clean">Clean</option><option value="noisy">One incorrect seed</option></select></label>
+<button type="button" id="pseudo-round">Next round</button>
+<button type="button" id="pseudo-reset">Reset</button>
+</div>
+<canvas id="semi-supervised-canvas" width="620" height="180" role="img" aria-label="Labelled seeds and accepted pseudo-labels on a one-dimensional feature axis"></canvas>
+<p class="aisw-hint">Filled circles are labelled examples. Each round accepts only the most confident currently unlabelled example, retraining the one-dimensional classifier after every addition. A wrong seed or a low threshold can make the model reinforce its own mistaken boundary.</p>
+<div id="pseudo-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
 
 > **Important:** Because pseudo-labels are generated by the model itself, semi-supervised learning carries a risk of **confirmation bias**: if the initial model is systematically wrong on a certain input pattern (e.g. a rare occlusion case), it will generate incorrect pseudo-labels for similar unlabelled examples, and training on those labels reinforces the original error rather than correcting it.
 
@@ -142,6 +205,22 @@ $$
 - Motion planning.
 - Reward shaping for specific driving behaviours (e.g. comfort, efficiency, rule compliance).
 
+#### Try it: change the reward, change the policy
+
+```{=html}
+<div id="reinforcement-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Near-miss penalty <select id="rl-penalty"><option value="1">1</option><option value="5" selected>5</option><option value="20">20</option></select></label>
+<button type="button" id="rl-step">Run episode</button>
+<button type="button" id="rl-train">Train 50 episodes</button>
+<button type="button" id="rl-reset">Reset Q-values</button>
+</div>
+<canvas id="rl-canvas" width="520" height="360" role="img" aria-label="Small grid environment where an agent learns from rewards"></canvas>
+<p class="aisw-hint">The agent starts at bottom left and learns a route to the top-right goal. Red cells are near-miss hazards. Change their penalty and retrain: the destination stays fixed, but the value of each route can change.</p>
+<div id="rl-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
 > **Important — reward specification.** An RL agent optimises exactly the reward function it is given, not the designer's underlying intent. A poorly specified reward (e.g. one that rewards progress without sufficiently penalising near-misses) can lead to **reward hacking**: a policy that scores well on the specified reward while behaving in an unintended or unsafe way. This is a central concern when applying RL to driving and is revisited in Section 2.10.
 
 ## 2.7 Imitation Learning
@@ -159,6 +238,24 @@ $$
 - Learning vehicle manoeuvres from expert driving data.
 
 > **Important — distributional shift.** Behaviour cloning is trained only on the states an expert actually visited. Once deployed, small prediction errors cause the vehicle to drift into states slightly different from the training distribution; because those states were rarely or never demonstrated, the model's errors there tend to be larger, driving the vehicle further off-distribution. This **compounding error** problem is one of the best-known failure modes in automotive AI and is distinct from the failure modes of supervised learning on i.i.d. data. A standard mitigation is **DAgger (Dataset Aggregation)**: the learned policy is run in the environment (in simulation), the expert labels the *actual* visited states with the correct action, and these corrective examples are added to the training set — iteratively closing the gap between the training distribution and the states the policy actually encounters.
+
+#### Try it: rollout error and corrective demonstrations
+
+```{=html}
+<div id="imitation-widget" class="aisafety-widget">
+<div class="aisw-controls">
+<label>Training data <select id="imitation-method"><option value="cloning">Expert demonstrations only</option><option value="dagger">Expert + rollout corrections</option></select></label>
+<label>Control error <input type="range" id="imitation-error" min="0.1" max="1" step="0.1" value="0.5"> <span id="imitation-error-value"></span></label>
+<button type="button" id="imitation-step">Next time step</button>
+<button type="button" id="imitation-reset">Reset rollout</button>
+</div>
+<canvas id="imitation-canvas" width="620" height="280" role="img" aria-label="Compounding lateral drift during an imitation-learning rollout"></canvas>
+<p class="aisw-hint">Advance the rollout one time step at a time. Plain behaviour cloning repeatedly applies a weaker correction learned only on expert states. The DAgger-style option includes corrective examples from off-centre states and returns more quickly toward the lane centre.</p>
+<div id="imitation-stats" class="aisw-stats" aria-live="polite"></div>
+</div>
+```
+
+<script src="learning-methods-widgets.js"></script>
 
 ## 2.8 Comparison of Learning Paradigms
 
