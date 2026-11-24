@@ -5,12 +5,11 @@
 
 In Chapter 2 we saw *how* a model can be taught: with labels, without labels, through rewards, or by imitating an expert. In this chapter we look at *what* is being taught — the model itself.
 
-A [**neural network**](#glossary-neural-network) is a computer program that learns a task from examples instead of following hand-written rules. Its [**architecture**](#glossary-model-architecture) is its shape and wiring: how many parts it has, what each part does, and how the parts are connected. Different tasks need different architectures. A network that reads camera images is wired differently from one that reads [LiDAR](#glossary-point-cloud) points or predicts where a pedestrian will walk next.
+A [**neural network**](#glossary-neural-network) is a parameterised (a term used frequently throughout this book) computational model consisting of interconnected processing operations, typically organised into [layers](#glossary-layer). Each layer transforms its input using mathematical operations such as weighted linear or convolutional transformations and activation functions; some architectures also use attention mechanisms, introduced later in this chapter. The model's parameters, primarily weights and biases, are learnable: their values are adjusted during training to minimise a specified loss function. Once trained, the network maps input data to outputs. In autonomous driving, these outputs can support tasks such as object classification and detection (including bounding boxes), semantic segmentation (pixel-level classification), and trajectory prediction.
 
-Key technical terms are linked to the **Glossary** at the end of this chapter. The separate **Mathematical notation** table summarises the main symbols used in equations and examples.
+Neural networks are the central computational model underlying deep learning. Deep learning uses neural networks with multiple layers to learn increasingly complex representations from data. The architectures, training methods, and deployment considerations discussed throughout this book build on, extend, or apply these models.
 
-Recall from Section 2.2 that training means finding the [parameters](#glossary-model-parameters) [$\theta$](#notation-theta) that make a [loss function](#glossary-loss-function) small:
-In the objective below, [$f_\theta$](#notation-f-theta) is the model function, [$x_i$](#notation-data) and [$y_i$](#notation-data) are the input and target for example $i$, [$N$](#notation-dataset-size) is the number of examples, and [$\mathcal{L}$](#notation-loss) is the loss function.
+Let us start with a little math without making it too scary. Recall from Section 2.2 that training means finding the [parameters](#glossary-model-parameters) [$\theta$](#notation-theta) that make a [loss function](#glossary-loss-function) small, as above. In the objective below, [$f_\theta$](#notation-f-theta) is the model function, [$x_i$](#notation-data) and [$y_i$](#notation-data) are the input and target for example $i$, [$N$](#notation-dataset-size) is the number of examples, and [$\mathcal{L}$](#notation-loss) is the loss function. This objective expresses the training goal mathematically:
 
 $$
 \theta^{*} = \arg\min_{\theta} \; \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\big(f_\theta(x_i),\, y_i\big)
@@ -626,14 +625,16 @@ An **activation function** is a small mathematical function applied to the outpu
 
 | Function | Formula | Plain-language description | Typical use |
 |---|---|---|---|
-| **ReLU** | $\max(0, x)$ | Negative values become zero; positive values pass unchanged. | Default choice in hidden layers of CNNs |
-| **Leaky ReLU** | $\max(0.01x, x)$ | Like ReLU, but lets a tiny amount of negative values through. | Detection networks (e.g. [YOLO](#glossary-yolo) variants) |
+| **ReLU** | $\max(0, x)$ | Negative values become zero; positive values pass unchanged. This can help extract features such as vehicle edges, road boundaries, and pedestrian shapes. | Default choice in hidden layers of CNNs |
+| **Leaky ReLU** | $\max(0.01x, x)$ | Similar to ReLU, but allows a small negative activation instead of suppressing it completely. | Detection networks (e.g. [YOLO](#glossary-yolo) variants) |
 | **Sigmoid** | $\dfrac{1}{1+e^{-x}}$ | Squashes any number into the range 0 to 1. | Output of a yes/no decision |
 | **Tanh** | $\dfrac{e^{x}-e^{-x}}{e^{x}+e^{-x}}$ | Squashes any number into the range −1 to 1. | Inside LSTM cells |
-| **Softmax** | $\dfrac{e^{z_i}}{\sum_j e^{z_j}}$ | Turns a list of numbers into probabilities that add up to 100%. | Output of a multi-class classifier |
+| **Softmax** | $\dfrac{e^{z_i}}{\sum_j e^{z_j}}$ | Turns a list of numbers into probabilities that add up to 100%. | Output of a multi-class classifier, for example to classify a detected traffic sign as a stop, yield, or speed-limit sign; the predicted class probabilities sum to 1. |
 | **GELU / SiLU** | $x\,\Phi(x)$ / $x\,\sigma(x)$ | Smooth versions of ReLU. | Transformers and modern CNNs |
 
 > [**The vanishing-gradient problem**](#glossary-gradient). Sigmoid and tanh become almost flat for very large or very small inputs. In a flat region, the signal used to teach the network (the gradient, Section 3.3) is close to zero, so early layers of a deep network barely learn. ReLU-type functions do not flatten for positive values, which is one reason they dominate modern networks.
+
+The blue solid curve shows the activation output, $\phi(x)$, while the red dotted curve shows its derivative, $\phi'(x)$. Together, they illustrate how an activation function transforms a neuron's input and how sensitive its output is to changes in that input. Backpropagation uses gradients to determine how the model's parameters should change; the derivative of an activation function contributes to this calculation.
 
 <div id="act-widget" class="aisafety-widget">
 <div class="aisw-controls">
