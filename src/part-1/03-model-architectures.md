@@ -32,7 +32,7 @@ Edit the points below and watch $w$, $b$ and the [mean squared error](#glossary-
 <label><input type="checkbox" id="lr-residuals"> show residuals</label>
 </div>
 <canvas id="lr-canvas" width="680" height="380"></canvas>
-<p class="aisw-hint">Click empty space to add a point, drag a point to move it, double-click a point to delete it.</p>
+<p class="aisw-hint">Click empty space to add a point. At least two points are needed to calculate linear regression; double-click a point to remove it. The line represents the regression equation <i>wx + b</i>. The weight <i>w</i>, or slope, determines the line's inclination. The bias <i>b</i>, or intercept, determines where the line crosses the vertical axis: larger values move the line higher, while smaller values move it lower. MSE is the mean squared error, calculated as the mean of the squared distance between each point and the line; larger values indicate a greater overall deviation from the line.</p>
 <div id="lr-stats" class="aisw-stats"></div>
 </div>
 
@@ -241,7 +241,22 @@ Section 3.2.4 explains these activation functions in more detail.
 <label>activation <select id="neuron-phi"><option value="none">none</option><option value="relu">ReLU</option><option value="sigmoid" selected>Sigmoid</option><option value="tanh">Tanh</option></select></label>
 </div>
 <canvas id="neuron-canvas" width="420" height="420"></canvas>
-<p class="aisw-hint">Click anywhere on the plot to probe a point (x1, x2) and read z and y. The dark line is the decision boundary z = 0, where the sign of the pre-activation flips.</p>
+<div class="aisw-hint">
+<p>This example illustrates how a single neuron with two inputs, <i>x</i><sub>1</sub> and <i>x</i><sub>2</sub>, transforms them into an output, and how its weights <i>w</i><sub>1</sub> and <i>w</i><sub>2</sub> and bias <i>b</i> determine that transformation.</p>
+<p><strong>Sliders:</strong></p>
+<ul>
+<li><strong><i>w</i><sub>1</sub>:</strong> Controls how strongly input <i>x</i><sub>1</sub> influences the weighted sum. A positive value increases the weighted sum as <i>x</i><sub>1</sub> increases while <i>x</i><sub>2</sub> remains constant.</li>
+<li><strong><i>w</i><sub>2</sub>:</strong> Controls the influence of input <i>x</i><sub>2</sub>. A positive value increases the weighted sum as <i>x</i><sub>2</sub> increases; a negative value decreases it.</li>
+<li><strong><i>b</i>:</strong> Adds a constant offset to the weighted sum. Changing it shifts the position of the zero pre-activation contour.</li>
+</ul>
+<p><strong>Visualisation:</strong></p>
+<ul>
+<li>Each point in the plot represents one possible combination of inputs <i>x</i><sub>1</sub> and <i>x</i><sub>2</sub>.</li>
+<li><strong>Blue</strong> indicates a lower neuron output, <strong>white</strong> an intermediate output, and <strong>red</strong> a higher output. The colours cover a continuous range scaled to the selected activation function; they do not represent probabilities or proportions of the input data.</li>
+<li>The <strong>dark line</strong> is the zero pre-activation contour, where <i>z</i> = <i>w</i><sub>1</sub><i>x</i><sub>1</sub> + <i>w</i><sub>2</sub><i>x</i><sub>2</sub> + <i>b</i> = 0.</li>
+</ul>
+<p><strong>Activation function:</strong> Selecting a different function changes how the weighted sum is transformed into the neuron output. Observe the resulting changes in output values and colour distribution. The zero pre-activation contour remains unchanged because it is determined by the weights and bias, not by the activation function.</p>
+</div>
 <div id="neuron-stats" class="aisw-stats"></div>
 </div>
 
