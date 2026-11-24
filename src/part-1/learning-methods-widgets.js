@@ -24,24 +24,39 @@
   function supervisedWidget() {
     const root = el("supervised-widget");
     if (!root) return;
-    const points = [
+    const initialPoints = [
       [0.10, 0.20, 0], [0.20, 0.45, 0], [0.28, 0.18, 0], [0.36, 0.62, 0],
       [0.45, 0.35, 0], [0.52, 0.72, 1], [0.62, 0.42, 1], [0.70, 0.76, 1],
       [0.82, 0.30, 1], [0.90, 0.65, 1]
     ];
+    let points = initialPoints.map(([x, y, label], index) => ({ x, y, label, initialIndex: index }));
+    let selected = -1;
     const threshold = el("supervised-threshold");
     const labels = el("supervised-labels");
+    const pointClass = el("supervised-point-class");
+    const canvas = el("supervised-canvas");
+    const padding = 42;
 
     function observedLabel(point) {
-      if (labels.value === "one-flipped" && point === points[5]) return 0;
-      if (labels.value === "three-flipped" && (point === points[5] || point === points[7] || point === points[8])) return 0;
-      return point[2];
+      if (labels.value === "one-flipped" && point.initialIndex === 5) return 1 - point.label;
+      if (labels.value === "three-flipped" && [5, 7, 8].includes(point.initialIndex)) return 1 - point.label;
+      return point.label;
+    }
+
+    function position(event) {
+      const rect = canvas.getBoundingClientRect();
+      const px = (event.clientX - rect.left) * (canvas.width / rect.width);
+      const py = (event.clientY - rect.top) * (canvas.height / rect.height);
+      return [
+        clamp((px - padding) / (canvas.width - 2 * padding), 0, 1),
+        clamp((canvas.height - padding - py) / (canvas.height - 2 * padding), 0, 1),
+        px,
+        py
+      ];
     }
 
     function draw() {
-      const canvas = el("supervised-canvas");
       const ctx = canvas.getContext("2d");
-      const padding = 42;
       const px = (x) => padding + x * (canvas.width - 2 * padding);
       const py = (y) => canvas.height - padding - y * (canvas.height - 2 * padding);
       drawAxes(ctx, canvas.width, canvas.height, padding, "object width", "object height");
@@ -52,24 +67,68 @@
       ctx.beginPath(); ctx.moveTo(px(cut), padding); ctx.lineTo(px(cut), canvas.height - padding); ctx.stroke();
       ctx.setLineDash([]);
       let correct = 0, noisy = 0;
-      points.forEach((point) => {
-        const predicted = point[0] >= cut ? 1 : 0;
-        const target = point[2];
+      points.forEach((point, index) => {
+        const predicted = point.x >= cut ? 1 : 0;
         const observed = observedLabel(point);
-        if (predicted === target) correct++;
-        if (observed !== target) noisy++;
+        if (predicted === point.label) correct++;
+        if (observed !== point.label) noisy++;
         ctx.fillStyle = observed ? colours.orange : colours.blue;
-        ctx.strokeStyle = observed !== target ? colours.red : "#fff";
-        ctx.lineWidth = observed !== target ? 3 : 1;
-        ctx.beginPath(); ctx.arc(px(point[0]), py(point[1]), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = index === selected ? colours.dark : observed !== point.label ? colours.red : "#fff";
+        ctx.lineWidth = index === selected ? 4 : observed !== point.label ? 3 : 1;
+        ctx.beginPath(); ctx.arc(px(point.x), py(point.y), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
       });
       el("supervised-threshold-value").textContent = cut.toFixed(2);
-      el("supervised-stats").textContent = `Threshold = ${cut.toFixed(2)} | Accuracy against true labels = ${(correct / points.length * 100).toFixed(0)}% | Incorrect training labels = ${noisy}/${points.length}.`;
+      const accuracy = points.length ? correct / points.length * 100 : 0;
+      el("supervised-stats").textContent = `Points = ${points.length} | Threshold = ${cut.toFixed(2)} | Accuracy against true labels = ${accuracy.toFixed(0)}% | Incorrect training labels = ${noisy}/${points.length}. ${selected >= 0 ? `Point ${selected + 1} is selected.` : "Select a point to relabel it."}`;
     }
 
+    function nearest(px, py) {
+      let nearestIndex = -1;
+      let nearestDistance = 13;
+      points.forEach((point, index) => {
+        const x = padding + point.x * (canvas.width - 2 * padding);
+        const y = canvas.height - padding - point.y * (canvas.height - 2 * padding);
+        const distance = Math.hypot(x - px, y - py);
+        if (distance < nearestDistance) { nearestDistance = distance; nearestIndex = index; }
+      });
+      return nearestIndex;
+    }
+
+    canvas.addEventListener("click", (event) => {
+      const [x, y, px, py] = position(event);
+      const hit = nearest(px, py);
+      if (hit >= 0) {
+        selected = hit;
+        pointClass.value = String(points[hit].label);
+      } else if (px >= padding && px <= canvas.width - padding && py >= padding && py <= canvas.height - padding) {
+        points.push({ x, y, label: Number(pointClass.value), initialIndex: -1 });
+        selected = points.length - 1;
+      }
+      draw();
+    });
+    canvas.addEventListener("dblclick", (event) => {
+      const [, , px, py] = position(event);
+      const hit = nearest(px, py);
+      if (hit >= 0) {
+        points.splice(hit, 1);
+        selected = -1;
+        draw();
+      }
+    });
     threshold.addEventListener("input", draw);
     labels.addEventListener("change", draw);
-    el("supervised-reset").addEventListener("click", () => { threshold.value = "0.5"; labels.value = "clean"; draw(); });
+    pointClass.addEventListener("change", () => {
+      if (selected >= 0) points[selected].label = Number(pointClass.value);
+      draw();
+    });
+    el("supervised-reset").addEventListener("click", () => {
+      points = initialPoints.map(([x, y, label], index) => ({ x, y, label, initialIndex: index }));
+      selected = -1;
+      threshold.value = "0.5";
+      labels.value = "clean";
+      pointClass.value = "0";
+      draw();
+    });
     draw();
   }
 
@@ -136,24 +195,53 @@
   function unsupervisedWidget() {
     const root = el("unsupervised-widget");
     if (!root) return;
-    const points = [
-      [0.12, 0.18], [0.18, 0.30], [0.25, 0.20], [0.30, 0.36], [0.20, 0.48],
-      [0.50, 0.66], [0.58, 0.78], [0.66, 0.62], [0.72, 0.82], [0.58, 0.52],
-      [0.80, 0.20], [0.88, 0.34], [0.72, 0.28], [0.90, 0.46], [0.76, 0.44]
+    const initialPoints = [
+      [0.12, 0.18, 0], [0.18, 0.30, 0], [0.25, 0.20, 0], [0.30, 0.36, 0], [0.20, 0.48, 0],
+      [0.50, 0.66, 1], [0.58, 0.78, 1], [0.66, 0.62, 1], [0.72, 0.82, 1], [0.58, 0.52, 1],
+      [0.80, 0.20, 2], [0.88, 0.34, 2], [0.72, 0.28, 2], [0.90, 0.46, 2], [0.76, 0.44, 2]
     ];
+    let points = initialPoints.map(([x, y, seedColor]) => ({ x, y, seedColor }));
     const count = el("cluster-count");
-    let centres = [], iteration = 0, assignments = [];
+    const pointColor = el("cluster-point-color");
+    const canvas = el("unsupervised-canvas");
+    const padding = 34;
+    const palette = [colours.blue, colours.orange, colours.green, "#7c4d9e"];
+    let centres = [], iteration = 0, assignments = [], selected = -1;
 
     function reset() {
       const k = Number(count.value);
       centres = Array.from({ length: k }, (_, i) => [0.12 + i * 0.76 / Math.max(1, k - 1), 0.2 + (i % 2) * 0.55]);
-      iteration = 0; assignments = [];
+      iteration = 0; assignments = []; selected = -1;
       draw();
     }
 
+    function position(event) {
+      const rect = canvas.getBoundingClientRect();
+      const px = (event.clientX - rect.left) * (canvas.width / rect.width);
+      const py = (event.clientY - rect.top) * (canvas.height / rect.height);
+      return [
+        clamp((px - padding) / (canvas.width - 2 * padding), 0, 1),
+        clamp((canvas.height - padding - py) / (canvas.height - 2 * padding), 0, 1),
+        px,
+        py
+      ];
+    }
+
+    function nearest(px, py) {
+      let nearestIndex = -1;
+      let nearestDistance = 13;
+      points.forEach((point, index) => {
+        const x = padding + point.x * (canvas.width - 2 * padding);
+        const y = canvas.height - padding - point.y * (canvas.height - 2 * padding);
+        const distance = Math.hypot(x - px, y - py);
+        if (distance < nearestDistance) { nearestDistance = distance; nearestIndex = index; }
+      });
+      return nearestIndex;
+    }
+
     function assign() {
-      assignments = points.map(([x, y]) => centres.reduce((best, centre, i) => {
-        const distance = (x - centre[0]) ** 2 + (y - centre[1]) ** 2;
+      assignments = points.map((point) => centres.reduce((best, centre, i) => {
+        const distance = (point.x - centre[0]) ** 2 + (point.y - centre[1]) ** 2;
         return distance < best.distance ? { index: i, distance } : best;
       }, { index: 0, distance: Infinity }).index);
     }
@@ -164,8 +252,8 @@
         const members = points.filter((_, i) => assignments[i] === index);
         if (!members.length) return centre;
         return [
-          members.reduce((sum, point) => sum + point[0], 0) / members.length,
-          members.reduce((sum, point) => sum + point[1], 0) / members.length
+          members.reduce((sum, point) => sum + point.x, 0) / members.length,
+          members.reduce((sum, point) => sum + point.y, 0) / members.length
         ];
       });
       iteration++;
@@ -174,16 +262,15 @@
     }
 
     function draw() {
-      const canvas = el("unsupervised-canvas");
       const ctx = canvas.getContext("2d");
-      const padding = 34;
       const px = (x) => padding + x * (canvas.width - 2 * padding);
       const py = (y) => canvas.height - padding - y * (canvas.height - 2 * padding);
       drawAxes(ctx, canvas.width, canvas.height, padding, "scenario feature 1", "scenario feature 2");
-      const palette = [colours.blue, colours.orange, colours.green, "#7c4d9e"];
       points.forEach((point, i) => {
-        ctx.fillStyle = assignments.length ? palette[assignments[i] % palette.length] : colours.grey;
-        ctx.beginPath(); ctx.arc(px(point[0]), py(point[1]), 5, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = assignments.length ? palette[assignments[i] % palette.length] : palette[point.seedColor];
+        ctx.strokeStyle = i === selected ? colours.dark : "#fff";
+        ctx.lineWidth = i === selected ? 4 : 1;
+        ctx.beginPath(); ctx.arc(px(point.x), py(point.y), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
       });
       centres.forEach((centre, i) => {
         ctx.strokeStyle = palette[i % palette.length];
@@ -191,13 +278,49 @@
         const x = px(centre[0]), y = py(centre[1]);
         ctx.beginPath(); ctx.moveTo(x - 7, y - 7); ctx.lineTo(x + 7, y + 7); ctx.moveTo(x + 7, y - 7); ctx.lineTo(x - 7, y + 7); ctx.stroke();
       });
-      const inertia = assignments.length ? points.reduce((sum, point, i) => sum + (point[0] - centres[assignments[i]][0]) ** 2 + (point[1] - centres[assignments[i]][1]) ** 2, 0) : NaN;
+      const inertia = assignments.length ? points.reduce((sum, point, i) => sum + (point.x - centres[assignments[i]][0]) ** 2 + (point.y - centres[assignments[i]][1]) ** 2, 0) : NaN;
       el("cluster-count-value").textContent = count.value;
-      el("cluster-stats").textContent = `k = ${count.value} | Iteration = ${iteration} | ${Number.isNaN(inertia) ? "Run an iteration to calculate clusters." : `Within-cluster squared distance = ${inertia.toFixed(3)}.`}`;
+      el("cluster-stats").textContent = `Points = ${points.length} | k = ${count.value} | Iteration = ${iteration} | ${Number.isNaN(inertia) ? "Run an iteration to calculate clusters." : `Within-cluster squared distance = ${inertia.toFixed(3)}.`} ${selected >= 0 ? `Point ${selected + 1} is selected.` : "Select a point to recolour it."}`;
     }
 
+    canvas.addEventListener("click", (event) => {
+      const [x, y, px, py] = position(event);
+      const hit = nearest(px, py);
+      if (hit >= 0) {
+        selected = hit;
+        pointColor.value = String(points[hit].seedColor);
+      } else if (px >= padding && px <= canvas.width - padding && py >= padding && py <= canvas.height - padding) {
+        points.push({ x, y, seedColor: Number(pointColor.value) });
+        selected = points.length - 1;
+      }
+      iteration = 0;
+      assignments = [];
+      draw();
+    });
+    canvas.addEventListener("dblclick", (event) => {
+      const [, , px, py] = position(event);
+      const hit = nearest(px, py);
+      if (hit >= 0) {
+        points.splice(hit, 1);
+        selected = -1;
+        iteration = 0;
+        assignments = [];
+        draw();
+      }
+    });
+    pointColor.addEventListener("change", () => {
+      if (selected >= 0) points[selected].seedColor = Number(pointColor.value);
+      iteration = 0;
+      assignments = [];
+      draw();
+    });
     el("cluster-step").addEventListener("click", advance);
     el("cluster-reset").addEventListener("click", reset);
+    el("cluster-restore").addEventListener("click", () => {
+      points = initialPoints.map(([x, y, seedColor]) => ({ x, y, seedColor }));
+      pointColor.value = "0";
+      reset();
+    });
     count.addEventListener("input", reset);
     reset();
   }

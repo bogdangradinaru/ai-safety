@@ -29,24 +29,7 @@ Each training example contains:
 - **Label:** e.g. a bounding box identifying a pedestrian.
 - **Output:** the model prediction $f_\theta(x_i)$, which is compared against the ground-truth label $y_i$ via the loss $\mathcal{L}$.
 
-### Practical Lab 1 — Automotive Object Detection
-
-In this exercise, we will train a YOLO object detection
-model using annotated images from the KITTI dataset.
-
-**Learning objectives:**
-- Understand ground-truth annotations.
-- Train an object detection model.
-- Evaluate detection performance.
-- Investigate AI safety implications.
-
-**Tools:** KITTI, YOLO, PyTorch, Google Colab.
-
-[Open notebook in Google Colab](https://colab.research.google.com/github/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
-
-[View notebook on GitHub](https://github.com/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
-
-### Automotive examples
+### Automotive applications
 
 - Object detection (vehicles, pedestrians, cyclists).
 - Traffic sign classification.
@@ -60,10 +43,11 @@ model using annotated images from the KITTI dataset.
 <div class="aisw-controls">
 <label>Width threshold <input type="range" id="supervised-threshold" min="0.1" max="0.9" step="0.01" value="0.5"> <span id="supervised-threshold-value"></span></label>
 <label>Training labels <select id="supervised-labels"><option value="clean">Clean</option><option value="one-flipped">One wrong label</option><option value="three-flipped">Three wrong labels</option></select></label>
+<label>Point class <select id="supervised-point-class"><option value="0">Blue</option><option value="1">Orange</option></select></label>
 <button type="button" id="supervised-reset">Reset</button>
 </div>
-<canvas id="supervised-canvas" width="620" height="300" role="img" aria-label="Labelled examples and a movable classification threshold"></canvas>
-<p class="aisw-hint">Move the decision boundary. Blue and orange are the supplied class labels; red rings mark incorrect training labels. The reported accuracy always uses the underlying true labels, so it exposes what a corrupted dataset can hide.</p>
+<canvas id="supervised-canvas" width="620" height="300" role="img" aria-label="Editable labelled examples and a movable classification threshold"></canvas>
+<p class="aisw-hint">Choose Blue or Orange, then click empty space to add a point. Click a point to select it and use the class control to relabel it; double-click a point to remove it. Red rings mark incorrect training labels. Accuracy is calculated against the point's true label.</p>
 <div id="supervised-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -139,11 +123,13 @@ Unsupervised learning identifies patterns, structures, or representations in dat
 <div id="unsupervised-widget" class="aisafety-widget">
 <div class="aisw-controls">
 <label>Number of clusters k <input type="range" id="cluster-count" min="2" max="4" step="1" value="3"> <span id="cluster-count-value"></span></label>
+<label>Point colour <select id="cluster-point-color"><option value="0">Blue</option><option value="1">Orange</option><option value="2">Green</option></select></label>
 <button type="button" id="cluster-step">Run iteration</button>
 <button type="button" id="cluster-reset">Reset centres</button>
+<button type="button" id="cluster-restore">Restore points</button>
 </div>
-<canvas id="unsupervised-canvas" width="620" height="320" role="img" aria-label="Unlabelled points clustered using k-means"></canvas>
-<p class="aisw-hint">Each run assigns every scenario to its nearest centre, then moves the centres to the mean of their assigned points. The algorithm finds geometric structure without knowing a safety-relevant class name.</p>
+<canvas id="unsupervised-canvas" width="620" height="320" role="img" aria-label="Editable scenario points clustered using k-means"></canvas>
+<p class="aisw-hint">Choose a colour and click empty space to add a point. Click a point to select and recolour it; double-click to remove it. Run an iteration to discard the seed colours and recolour points by the clusters discovered from their positions.</p>
 <div id="cluster-stats" class="aisw-stats" aria-live="polite"></div>
 </div>
 ```
@@ -304,3 +290,19 @@ Different learning paradigms address different training challenges, and in autom
 - He, K. et al. — *Masked Autoencoders Are Scalable Vision Learners* (masked-image-modelling self-supervised learning).
 - ISO 21448 — *Road vehicles – Safety of the intended functionality (SOTIF)*.
 - ISO/PAS 8800 — *Road vehicles – Safety and artificial intelligence*.
+
+## Practical Lab 1 — Automotive Object Detection
+
+In this exercise, we will train a YOLO object detection model using annotated images from the KITTI dataset.
+
+**Learning objectives:**
+- Understand ground-truth annotations.
+- Train an object detection model.
+- Evaluate detection performance.
+- Investigate AI safety implications.
+
+**Tools:** KITTI, YOLO, PyTorch, Google Colab.
+
+[Open notebook in Google Colab](https://colab.research.google.com/github/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)
+
+[View notebook on GitHub](https://github.com/bogdangradinaru/ai-safety/blob/main/notebooks/part-1/01-supervised-kitti-yolo.ipynb)

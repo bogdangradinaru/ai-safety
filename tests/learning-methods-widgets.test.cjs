@@ -8,9 +8,9 @@ const script = fs.readFileSync(path.join(__dirname, "../src/part-1/learning-meth
 
 function setup() {
   const defaults = {
-    "supervised-threshold": "0.5", "supervised-labels": "clean",
+    "supervised-threshold": "0.5", "supervised-labels": "clean", "supervised-point-class": "0",
     "self-task": "mask", "self-strength": "0.4",
-    "cluster-count": "3",
+    "cluster-count": "3", "cluster-point-color": "0",
     "pseudo-threshold": "0.65", "pseudo-seeds": "clean",
     "rl-penalty": "5",
     "imitation-method": "cloning", "imitation-error": "0.5"
@@ -34,6 +34,7 @@ function setup() {
           width: id.includes("rl-") ? 520 : 620,
           height: 300,
           getContext: () => context,
+          getBoundingClientRect() { return { left: 0, top: 0, width: this.width, height: this.height }; },
           addEventListener(type, handler) { this.listeners[type] = handler; }
         });
       }
@@ -42,10 +43,10 @@ function setup() {
   };
   vm.runInNewContext(script, { document, Math, Number, Infinity, NaN });
   const get = (id) => document.getElementById(id);
-  const trigger = (id, type, value) => {
+  const trigger = (id, type, value, event) => {
     const element = get(id);
     if (value !== undefined) element.value = value;
-    element.listeners[type]();
+    element.listeners[type](event);
   };
   return { get, trigger };
 }
@@ -57,6 +58,15 @@ test("supervised example separates label quality from true performance", () => {
   assert.match(get("supervised-stats").textContent, /Accuracy against true labels = 80%/);
   trigger("supervised-labels", "change", "three-flipped");
   assert.match(get("supervised-stats").textContent, /Incorrect training labels = 3\/10/);
+
+  trigger("supervised-canvas", "click", undefined, { clientX: 310, clientY: 80 });
+  assert.match(get("supervised-stats").textContent, /Points = 11/);
+  trigger("supervised-canvas", "click", undefined, { clientX: 95.6, clientY: 214.8 });
+  assert.match(get("supervised-stats").textContent, /Point 1 is selected/);
+  trigger("supervised-point-class", "change", "1");
+  assert.match(get("supervised-stats").textContent, /Point 1 is selected/);
+  trigger("supervised-canvas", "dblclick", undefined, { clientX: 310, clientY: 80 });
+  assert.match(get("supervised-stats").textContent, /Points = 10/);
 });
 
 test("self-supervised tasks derive masking or contrastive targets without labels", () => {
@@ -79,6 +89,17 @@ test("k-means iteration assigns points and decreases within-cluster distance", (
   assert.ok(second <= first, `${second} should not exceed ${first}`);
   trigger("cluster-count", "input", "4");
   assert.match(get("cluster-stats").textContent, /k = 4 \| Iteration = 0/);
+
+  trigger("cluster-point-color", "change", "1");
+  trigger("unsupervised-canvas", "click", undefined, { clientX: 310, clientY: 250 });
+  assert.match(get("cluster-stats").textContent, /Points = 16/);
+  trigger("unsupervised-canvas", "click", undefined, { clientX: 100.24, clientY: 224.24 });
+  trigger("cluster-point-color", "change", "2");
+  assert.match(get("cluster-stats").textContent, /Point 1 is selected/);
+  trigger("unsupervised-canvas", "dblclick", undefined, { clientX: 310, clientY: 250 });
+  assert.match(get("cluster-stats").textContent, /Points = 15/);
+  trigger("cluster-restore", "click");
+  assert.match(get("cluster-stats").textContent, /Points = 15 \| k = 4 \| Iteration = 0/);
 });
 
 test("pseudo-labelling rounds expose a bad seed and stricter thresholds", () => {
