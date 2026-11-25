@@ -1242,7 +1242,7 @@ The widget below compares three of the "predicting a number" losses for a true a
 
 The **gradient** of the loss with respect to a weight, $\dfrac{\partial \mathcal{L}}{\partial w}$, tells us how the loss changes if that weight is increased slightly. Imagine standing on a hill in thick fog: you cannot see the valley, but you can feel which way the ground slopes. The gradient is that slope, and moving *against* it takes you downhill, towards a lower loss.
 
-**Backpropagation** is the efficient method for computing the gradient of *every* weight in the network. Starting at the loss, it moves backwards layer by layer, using the [**chain rule**](#glossary-chain-rule) from calculus: the effect of a weight on the loss is the product of the effects along the path from that weight to the loss. For a weight $w$ feeding a neuron with pre-activation $z$ and output $\hat{y}$:
+**Backpropagation** is the efficient method for computing the gradient of *every* weight in the network. Starting at the loss, it moves backwards through the mathematical operations that produced the prediction, using the [**chain rule**](#glossary-chain-rule) from calculus. The effect of a weight on the loss is the product of the effects along the path from that weight to the loss. For a weight $w$ feeding a neuron with pre-activation $z$ and output $\hat{y}$:
 
 $$
 \frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial w}
@@ -1250,206 +1250,433 @@ $$
 
 Deep-learning frameworks such as PyTorch compute this automatically ([**automatic differentiation**](#glossary-automatic-differentiation)), so engineers rarely write it by hand.
 
-> **Running example — stage 3.** Our neuron has no activation function, so $\hat{y} = z$ and the middle factor is simply 1. Working backwards from the loss $\mathcal{L}=(\hat{y}-y)^2$:
+> **Running example — initial backward pass.** Our neuron has no activation function, so $\hat{y}=z$. Starting with $x=2$, $y=3$, $w=0.5$ and $b=0$:
 >
-> - How does the loss change with the prediction? $\dfrac{\partial \mathcal{L}}{\partial \hat{y}} = 2(\hat{y}-y) = 2(1-3) = -4$.
-> - How does the prediction change with each weight? $\dfrac{\partial \hat{y}}{\partial w} = x = 2$ and $\dfrac{\partial \hat{y}}{\partial b} = 1$.
-> - Multiplying along each path (chain rule): $\dfrac{\partial \mathcal{L}}{\partial w} = -4 \times 2 = -8$ and $\dfrac{\partial \mathcal{L}}{\partial b} = -4 \times 1 = -4$.
+> - Forward pass: $\hat{y}=wx+b=0.5\times2+0=1$.
+> - Loss: $\mathcal{L}=(\hat{y}-y)^2=(1-3)^2=4$.
+> - Gradient at the prediction: $\dfrac{\partial\mathcal{L}}{\partial\hat{y}}=2(\hat{y}-y)=-4$.
+> - Gradients at the parameters: $\dfrac{\partial\mathcal{L}}{\partial w}=-4\times2=-8$ and $\dfrac{\partial\mathcal{L}}{\partial b}=-4\times1=-4$.
 >
-> Both gradients are negative: increasing $w$ or $b$ would *lower* the loss, so the update will push them up.
+> Both gradients are negative: increasing either parameter would reduce the loss at this point.
 
-This is exactly what `loss.backward()` does automatically in PyTorch for networks with millions of weights: apply the chain rule layer by layer, rather than working it out by hand as above.
+#### Interactive: follow the gradients and watch the parameters update
 
-#### Interactive: the training loop on the running example
+Set the **initial** values of $w$ and $b$, then click **Step** to run one complete training iteration: forward pass, loss calculation, backpropagation and parameter update. Use **Play** to repeat the same process automatically, or **Reset** to return to the selected initial values.
 
-The stepper below runs the four stages of the loop on the running example. Click **Next stage** to walk through forward pass, loss, backward pass and update; the picture shows the loss for every possible pair $(w, b)$ — blue is low, red is high. The white dot is the neuron's current weights, the arrow shows the downhill direction found by the backward pass, and the dashed line shows where the update will move it. Click **Apply update** to start the next round.
+The **loss-landscape graph** shows the loss for different combinations of $w$ and $b$. The path shows how the parameters move after each update. The **computation graph** shows the numerical values moving forward (blue arrows) and the gradients moving backwards (orange arrows), in the style of the Micrograd example.
+
+To keep this section focused on how gradients are calculated and propagated, the interactive uses a small, fixed demonstration update step internally. Section 3.3.4 introduces the learning rate explicitly and lets you explore its effect.
 
 <div id="bp-widget" class="aisafety-widget">
-<div class="aisw-controls">
-<label>w <input type="range" id="bp-w" min="-2" max="3" step="0.05" value="0.5"> <span id="bp-w-val">0.50</span></label>
-<label>b <input type="range" id="bp-b" min="-3" max="3" step="0.05" value="0"> <span id="bp-b-val">0.00</span></label>
-<label>η <input type="range" id="bp-eta" min="0.01" max="0.3" step="0.01" value="0.1"> <span id="bp-eta-val">0.10</span></label>
-<button type="button" id="bp-next">Next stage ▸</button>
-<button type="button" id="bp-reset">Reset</button>
-</div>
-<div id="bp-stages" class="aisw-stats"></div>
-<canvas id="bp-canvas" width="420" height="380"></canvas>
-<p class="aisw-hint">x = 2, y = 3 — the running example. With the default settings, round 1 reproduces the numbers in the text exactly and lands on the target (loss 0). Now try changing η: at 0.2 each update overshoots to the other side of the valley and bounces back and forth; above 0.2 it diverges (the dot pins to the edge of the plot). Drag w or b to restart from anywhere.</p>
-<div id="bp-stats" class="aisw-stats"></div>
+  <div class="aisw-controls">
+    <label>Initial w
+      <input type="range" id="bp-init-w" min="-1.5" max="2.5" step="0.05" value="0.5">
+      <span id="bp-init-w-val">0.50</span>
+    </label>
+    <label>Initial b
+      <input type="range" id="bp-init-b" min="-2.5" max="2.5" step="0.05" value="0">
+      <span id="bp-init-b-val">0.00</span>
+    </label>
+    <button type="button" id="bp-step">Step</button>
+    <button type="button" id="bp-play">Play</button>
+    <button type="button" id="bp-reset">Reset</button>
+  </div>
+
+  <div id="bp-state" class="aisw-stats" aria-live="polite"></div>
+
+  <div style="display:grid;grid-template-columns:1fr;gap:1rem;align-items:start;">
+    <div>
+      <p style="margin:.25rem 0 .5rem;"><strong>1. Loss landscape</strong> — parameter values and their path</p>
+      <canvas id="bp-landscape" width="460" height="380" style="display:block;width:100%;height:auto;max-width:460px;" role="img" aria-label="Two-dimensional loss landscape for weight w and bias b, with the training trajectory"></canvas>
+    </div>
+    <div>
+      <p style="margin:.25rem 0 .5rem;"><strong>2. Computation graph</strong> — forward values and backward gradients</p>
+      <div style="max-width:100%;overflow-x:auto;">
+        <canvas id="bp-graph" width="860" height="340" style="display:block;width:860px;height:340px;max-width:none;" role="img" aria-label="Computation graph for prediction and squared error loss, showing values and gradients"></canvas>
+      </div>
+      <p class="aisw-hint" style="margin-top:.35rem;">Blue arrows show the forward calculation. Orange dashed arrows show gradients travelling backwards. Parameter nodes are highlighted in green. On narrow screens, scroll horizontally to inspect the full graph.</p>
+    </div>
+  </div>
+
+  <div id="bp-detail" class="aisw-stats" aria-live="polite"></div>
+  <p class="aisw-hint">Training example: one input $x=2$ and target $y=3$, with $\hat{y}=wx+b$ and $\mathcal{L}=(\hat{y}-y)^2$. The graph displays the values and gradients for the most recently completed iteration; the parameter summary shows the values after its update. Because this example uses only one training point and two parameters, zero loss is possible along a line of weight–bias combinations, rather than at just one point.</p>
 </div>
 
 <script>
 (function () {
-  const canvas = document.getElementById("bp-canvas");
-  const ctx = canvas.getContext("2d");
-  const stagesEl = document.getElementById("bp-stages");
-  const statsEl = document.getElementById("bp-stats");
-  const wInput = document.getElementById("bp-w");
-  const bInput = document.getElementById("bp-b");
-  const etaInput = document.getElementById("bp-eta");
-  const wVal = document.getElementById("bp-w-val");
-  const bVal = document.getElementById("bp-b-val");
-  const etaVal = document.getElementById("bp-eta-val");
-  const nextBtn = document.getElementById("bp-next");
+  const widget = document.getElementById("bp-widget");
+  if (!widget) return;
+
+  const landscape = document.getElementById("bp-landscape");
+  const graph = document.getElementById("bp-graph");
+  const lctx = landscape.getContext("2d");
+  const gctx = graph.getContext("2d");
+  const stateEl = document.getElementById("bp-state");
+  const detailEl = document.getElementById("bp-detail");
+  const initWInput = document.getElementById("bp-init-w");
+  const initBInput = document.getElementById("bp-init-b");
+  const initWVal = document.getElementById("bp-init-w-val");
+  const initBVal = document.getElementById("bp-init-b-val");
+  const stepBtn = document.getElementById("bp-step");
+  const playBtn = document.getElementById("bp-play");
   const resetBtn = document.getElementById("bp-reset");
 
-  const x = 2, y = 3;
+  // One deliberately fixed update factor. It is not a user control here;
+  // Section 3.3.4 introduces the learning rate and explores its effect.
+  const FIXED_UPDATE_FACTOR = 0.05;
+  const x = 2;
+  const y = 3;
   const wMin = -2, wMax = 3, bMin = -3, bMax = 3;
-  const pad = 36;
-  let trail = [];
-  let stage = 0;
-  let round = 0;
+  const lpad = 42;
+  const convergenceLoss = 1e-6;
+  let w = Number(initWInput.value);
+  let b = Number(initBInput.value);
+  let iteration = 0;
+  let history = [[w, b]];
+  let lastPass = null;
+  let timer = null;
+  let finished = false;
 
-  const f = (v) => v.toFixed(2).replace("-", "−");
-  const clampW = (v) => Math.min(wMax, Math.max(wMin, v));
-  const clampB = (v) => Math.min(bMax, Math.max(bMin, v));
-  function loss(w, b) { const yhat = w * x + b; return (yhat - y) ** 2; }
-  function grad(w, b) { const d = 2 * (w * x + b - y); return [d * x, d]; }
+  const fmt = (v, digits = 3) => {
+    const n = Math.abs(v) < Math.pow(10, -digits) / 2 ? 0 : v;
+    return n.toFixed(digits).replace("-", "−");
+  };
+  const fmt2 = (v) => fmt(v, 2);
+  const loss = (ww, bb) => (ww * x + bb - y) ** 2;
 
-  function toPx(w, b) {
-    const W = canvas.width, H = canvas.height;
-    return [
-      pad + (w - wMin) / (wMax - wMin) * (W - 2 * pad),
-      H - pad - (b - bMin) / (bMax - bMin) * (H - 2 * pad),
-    ];
+  function calculate(ww, bb) {
+    const product = ww * x;
+    const prediction = product + bb;
+    const error = prediction - y;
+    const currentLoss = error ** 2;
+    const gradError = 2 * error;
+    const gradPrediction = gradError;
+    const gradProduct = gradPrediction;
+    const gradW = gradProduct * x;
+    const gradB = gradPrediction;
+    const gradX = gradProduct * ww;
+    const gradTarget = -gradError;
+    return {
+      w: ww, b: bb, product, prediction, error, loss: currentLoss,
+      gradients: {
+        x: gradX, w: gradW, product: gradProduct, b: gradB,
+        prediction: gradPrediction, target: gradTarget,
+        error: gradError, loss: 1
+      }
+    };
   }
 
-  function colorFor(t) {
-    t = Math.min(1, Math.max(0, t));
-    const r = Math.round(255 * t);
-    const g = Math.round(255 * (1 - t) * 0.9);
-    const bch = Math.round(255 * (1 - t));
-    return `rgb(${r},${g},${bch})`;
+  function landscapePoint(ww, bb) {
+    const px = lpad + (ww - wMin) / (wMax - wMin) * (landscape.width - 2 * lpad);
+    const py = landscape.height - lpad - (bb - bMin) / (bMax - bMin) * (landscape.height - 2 * lpad);
+    return [px, py];
   }
 
-  const surface = document.createElement("canvas");
-  surface.width = canvas.width;
-  surface.height = canvas.height;
-  (function paintSurface() {
-    const sctx = surface.getContext("2d");
-    const W = surface.width, H = surface.height;
-    const cells = 40;
-    let maxL = 0;
-    const losses = [];
+  function drawLandscape() {
+    const W = landscape.width, H = landscape.height;
+    lctx.clearRect(0, 0, W, H);
+    lctx.fillStyle = "#fff";
+    lctx.fillRect(0, 0, W, H);
+
+    const cells = 52;
+    const cellW = (W - 2 * lpad) / cells;
+    const cellH = (H - 2 * lpad) / cells;
+    let maxLoss = 0;
+    const values = [];
     for (let i = 0; i < cells; i++) {
       for (let j = 0; j < cells; j++) {
         const ww = wMin + (i + 0.5) / cells * (wMax - wMin);
         const bb = bMin + (j + 0.5) / cells * (bMax - bMin);
-        const l = loss(ww, bb);
-        losses.push(l);
-        if (l > maxL) maxL = l;
+        const value = loss(ww, bb);
+        values.push(value);
+        maxLoss = Math.max(maxLoss, value);
       }
     }
-    const cellW = (W - 2 * pad) / cells;
-    const cellH = (H - 2 * pad) / cells;
-    let idx = 0;
+    let k = 0;
     for (let i = 0; i < cells; i++) {
       for (let j = 0; j < cells; j++) {
-        const t = Math.sqrt(Math.min(1, losses[idx++] / (maxL || 1)));
-        sctx.fillStyle = colorFor(t);
-        sctx.fillRect(pad + i * cellW, H - pad - (j + 1) * cellH, cellW + 1, cellH + 1);
+        const t = Math.sqrt(Math.min(1, values[k++] / (maxLoss || 1)));
+        const red = Math.round(255 * t);
+        const green = Math.round(255 * (1 - t) * 0.9);
+        const blue = Math.round(255 * (1 - t));
+        lctx.fillStyle = `rgb(${red},${green},${blue})`;
+        lctx.fillRect(lpad + i * cellW, H - lpad - (j + 1) * cellH, cellW + 1, cellH + 1);
       }
     }
-  })();
 
-  const titles = ["1 · Forward pass", "2 · Loss", "3 · Backward pass", "4 · Update"];
+    lctx.strokeStyle = "#273142";
+    lctx.lineWidth = 1;
+    lctx.strokeRect(lpad, lpad, W - 2 * lpad, H - 2 * lpad);
+    lctx.fillStyle = "#273142";
+    lctx.font = "11px system-ui, sans-serif";
+    lctx.textAlign = "center";
+    lctx.textBaseline = "top";
+    for (let tick = -2; tick <= 3; tick++) {
+      const [px] = landscapePoint(tick, bMin);
+      lctx.fillText(String(tick), px, H - lpad + 6);
+    }
+    lctx.textAlign = "right";
+    lctx.textBaseline = "middle";
+    for (let tick = -3; tick <= 3; tick++) {
+      const [, py] = landscapePoint(wMin, tick);
+      lctx.fillText(String(tick), lpad - 7, py);
+    }
+    lctx.textAlign = "center";
+    lctx.textBaseline = "bottom";
+    lctx.font = "12px system-ui, sans-serif";
+    lctx.fillText("weight w", W / 2, H - 4);
+    lctx.save();
+    lctx.translate(12, H / 2);
+    lctx.rotate(-Math.PI / 2);
+    lctx.fillText("bias b", 0, 0);
+    lctx.restore();
 
-  function stageText(i, w, b, eta) {
-    const yhat = w * x + b;
-    const d = 2 * (yhat - y);
-    const [gw, gb] = grad(w, b);
-    if (i === 0) return `ŷ = w·x + b = ${f(w)} × ${x} + ${f(b)} = <b>${f(yhat)}</b> &nbsp;(true answer y = ${y})`;
-    if (i === 1) return `L = (ŷ − y)² = (${f(yhat)} − ${y})² = <b>${f(loss(w, b))}</b>`;
-    if (i === 2) return `∂L/∂ŷ = 2(ŷ − y) = ${f(d)} &nbsp;→&nbsp; ∂L/∂w = ${f(d)} × ${x} = <b>${f(gw)}</b> &nbsp;,&nbsp; ∂L/∂b = ${f(d)} × 1 = <b>${f(gb)}</b>`;
-    return `w ← ${f(w)} − ${f(eta)} × (${f(gw)}) = <b>${f(w - eta * gw)}</b> &nbsp;,&nbsp; b ← ${f(b)} − ${f(eta)} × (${f(gb)}) = <b>${f(b - eta * gb)}</b>`;
+    if (history.length > 1) {
+      lctx.beginPath();
+      history.forEach(([hw, hb], index) => {
+        const [px, py] = landscapePoint(hw, hb);
+        if (index === 0) lctx.moveTo(px, py); else lctx.lineTo(px, py);
+      });
+      lctx.strokeStyle = "#172033";
+      lctx.lineWidth = 2.5;
+      lctx.stroke();
+
+      const [x1, y1] = landscapePoint(history[history.length - 2][0], history[history.length - 2][1]);
+      const [x2, y2] = landscapePoint(history[history.length - 1][0], history[history.length - 1][1]);
+      drawCanvasArrow(lctx, x1, y1, x2, y2, "#d97706", 2.5, false);
+    }
+
+    const [px, py] = landscapePoint(w, b);
+    lctx.beginPath();
+    lctx.arc(px, py, 7, 0, 2 * Math.PI);
+    lctx.fillStyle = "#fff";
+    lctx.fill();
+    lctx.strokeStyle = "#172033";
+    lctx.lineWidth = 2;
+    lctx.stroke();
+
+    // Small legend
+    lctx.textAlign = "left";
+    lctx.textBaseline = "top";
+    lctx.font = "10px system-ui, sans-serif";
+    lctx.fillStyle = "#172033";
+    lctx.fillText("low loss", lpad + 5, lpad + 5);
+    lctx.fillText("high loss", W - lpad - 55, lpad + 5);
+  }
+
+  function drawCanvasArrow(ctx, x1, y1, x2, y2, color, width = 2, dashed = false) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const head = 8;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dashed ? [5, 4] : []);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 6), y2 - head * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 6), y2 - head * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function nodeBoundary(a, b) {
+    const acx = a.x + a.w / 2, acy = a.y + a.h / 2;
+    const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+    const dx = bcx - acx, dy = bcy - acy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const ta = Math.min((a.w / 2) / Math.max(Math.abs(ux), 1e-6), (a.h / 2) / Math.max(Math.abs(uy), 1e-6));
+    const tb = Math.min((b.w / 2) / Math.max(Math.abs(ux), 1e-6), (b.h / 2) / Math.max(Math.abs(uy), 1e-6));
+    return [acx + ux * ta, acy + uy * ta, bcx - ux * tb, bcy - uy * tb];
+  }
+
+  function drawGraphNode(node, value, gradient, hasGradient) {
+    const { x: nx, y: ny, w: nw, h: nh } = node;
+    gctx.save();
+    gctx.fillStyle = node.fill;
+    gctx.strokeStyle = node.stroke;
+    gctx.lineWidth = 1.6;
+    gctx.beginPath();
+    gctx.roundRect(nx, ny, nw, nh, 9);
+    gctx.fill();
+    gctx.stroke();
+    gctx.fillStyle = "#273142";
+    gctx.textAlign = "center";
+    gctx.textBaseline = "top";
+    gctx.font = "11px system-ui, sans-serif";
+    gctx.fillText(node.title, nx + nw / 2, ny + 7);
+    gctx.font = "bold 14px system-ui, sans-serif";
+    gctx.fillText(`value ${fmt2(value)}`, nx + nw / 2, ny + 24);
+    gctx.font = "10px system-ui, sans-serif";
+    gctx.fillStyle = hasGradient ? "#a65312" : "#697386";
+    gctx.fillText(hasGradient ? `grad ${fmt2(gradient)}` : "grad —", nx + nw / 2, ny + 44);
+    gctx.restore();
+  }
+
+  function drawComputationGraph() {
+    const W = graph.width, H = graph.height;
+    gctx.clearRect(0, 0, W, H);
+    gctx.fillStyle = "#fff";
+    gctx.fillRect(0, 0, W, H);
+
+    const p = lastPass || calculate(w, b);
+    const hasGradient = Boolean(lastPass);
+    const nodes = {
+      x: { x: 18, y: 48, w: 112, h: 64, title: "Input x", fill: "#eef4ff", stroke: "#8ab4f8" },
+      w: { x: 18, y: 216, w: 112, h: 64, title: "Weight w", fill: "#eaf6ee", stroke: "#66a982" },
+      product: { x: 180, y: 132, w: 126, h: 66, title: "Multiply x × w", fill: "#f2f5fa", stroke: "#aab4c3" },
+      bias: { x: 180, y: 256, w: 112, h: 64, title: "Bias b", fill: "#eaf6ee", stroke: "#66a982" },
+      prediction: { x: 348, y: 132, w: 126, h: 66, title: "Prediction ŷ", fill: "#eef4ff", stroke: "#8ab4f8" },
+      target: { x: 348, y: 256, w: 112, h: 64, title: "Target y", fill: "#f2f5fa", stroke: "#aab4c3" },
+      error: { x: 520, y: 132, w: 126, h: 66, title: "Error e = ŷ − y", fill: "#fff7e8", stroke: "#e5b65f" },
+      loss: { x: 704, y: 132, w: 126, h: 66, title: "Loss L = e²", fill: "#fff0f0", stroke: "#df8888" }
+    };
+    const forwardEdges = [
+      ["x", "product"], ["w", "product"], ["product", "prediction"],
+      ["bias", "prediction"], ["prediction", "error"], ["target", "error"], ["error", "loss"]
+    ];
+
+    // Draw forward arrows first, so nodes sit cleanly over their endpoints.
+    forwardEdges.forEach(([from, to]) => {
+      const [x1, y1, x2, y2] = nodeBoundary(nodes[from], nodes[to]);
+      drawCanvasArrow(gctx, x1, y1, x2, y2, "#2563eb", 1.8, false);
+    });
+    // Backpropagation travels over the same connections in reverse.
+    if (hasGradient) {
+      forwardEdges.forEach(([from, to]) => {
+        const [x1, y1, x2, y2] = nodeBoundary(nodes[to], nodes[from]);
+        drawCanvasArrow(gctx, x1, y1, x2, y2, "#d97706", 1.6, true);
+      });
+    }
+
+    const values = {
+      x: [x, p.gradients.x],
+      w: [p.w, p.gradients.w],
+      product: [p.product, p.gradients.product],
+      bias: [p.b, p.gradients.b],
+      prediction: [p.prediction, p.gradients.prediction],
+      target: [y, p.gradients.target],
+      error: [p.error, p.gradients.error],
+      loss: [p.loss, p.gradients.loss]
+    };
+    Object.keys(nodes).forEach((key) => {
+      drawGraphNode(nodes[key], values[key][0], values[key][1], hasGradient);
+    });
+
+    gctx.fillStyle = "#2563eb";
+    gctx.font = "11px system-ui, sans-serif";
+    gctx.textAlign = "left";
+    gctx.fillText("FORWARD →", 18, 18);
+    gctx.fillStyle = "#d97706";
+    gctx.fillText(hasGradient ? "← BACKWARD" : "Backward gradients appear after Step", 125, 18);
+  }
+
+  function stopPlay() {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+    playBtn.textContent = "Play";
+  }
+
+  function updateControls() {
+    initWVal.textContent = fmt2(Number(initWInput.value));
+    initBVal.textContent = fmt2(Number(initBInput.value));
+    stepBtn.disabled = finished;
+    playBtn.disabled = finished;
+    playBtn.textContent = timer === null ? "Play" : "Pause";
   }
 
   function draw() {
-    const w = parseFloat(wInput.value);
-    const b = parseFloat(bInput.value);
-    const eta = parseFloat(etaInput.value);
-    wVal.textContent = f(w);
-    bVal.textContent = f(b);
-    etaVal.textContent = f(eta);
+    drawLandscape();
+    drawComputationGraph();
+    updateControls();
+    const currentLoss = loss(w, b);
+    stateEl.innerHTML = `<b>Iteration:</b> ${iteration} &nbsp;|&nbsp; <b>Current w:</b> ${fmt2(w)} &nbsp;|&nbsp; <b>Current b:</b> ${fmt2(b)} &nbsp;|&nbsp; <b>Current loss:</b> ${fmt(currentLoss, 6)}`;
 
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(surface, 0, 0);
-    ctx.strokeStyle = "#1f2430";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
-
-    if (trail.length > 0) {
-      ctx.strokeStyle = "#1f2430";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      trail.concat([[w, b]]).forEach(([tw, tb], i) => {
-        const [px, py] = toPx(tw, tb);
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      });
-      ctx.stroke();
+    if (!lastPass) {
+      detailEl.innerHTML = `Ready: press <b>Step</b> to calculate the prediction and loss, propagate the gradients backwards, and update both parameters.`;
+    } else {
+      detailEl.innerHTML =
+        `<b>Iteration ${iteration} — calculations using the previous parameter values</b><br>` +
+        `Forward: ŷ = ${fmt2(lastPass.w)} × ${x} + ${fmt2(lastPass.b)} = <b>${fmt2(lastPass.prediction)}</b>; ` +
+        `L = (${fmt2(lastPass.prediction)} − ${y})² = <b>${fmt2(lastPass.loss)}</b>.<br>` +
+        `Backward: ∂L/∂ŷ = ${fmt2(lastPass.gradients.prediction)}; ` +
+        `∂L/∂w = <b>${fmt2(lastPass.gradients.w)}</b>; ` +
+        `∂L/∂b = <b>${fmt2(lastPass.gradients.b)}</b>.<br>` +
+        `Update: w ${fmt2(lastPass.w)} → <b>${fmt2(lastPass.nextW)}</b>; ` +
+        `b ${fmt2(lastPass.b)} → <b>${fmt2(lastPass.nextB)}</b>.` +
+        (finished ? `<br><b>Converged for this demonstration:</b> the loss is below ${convergenceLoss}.` : "");
     }
-
-    const [px, py] = toPx(w, b);
-    const [gw, gb] = grad(w, b);
-
-    if (stage >= 2) {
-      const gnorm = Math.hypot(gw, gb) || 1;
-      const arrowLen = 35;
-      ctx.strokeStyle = "#1d4ed8";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(px, py);
-      ctx.lineTo(px - (gw / gnorm) * arrowLen, py + (gb / gnorm) * arrowLen);
-      ctx.stroke();
-    }
-    if (stage >= 3) {
-      const [nx, ny] = toPx(clampW(w - eta * gw), clampB(b - eta * gb));
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = "#1f2430";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.beginPath(); ctx.arc(nx, ny, 6, 0, 2 * Math.PI); ctx.fill();
-      ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 2; ctx.stroke();
-    }
-
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
-    ctx.strokeStyle = "#1f2430"; ctx.lineWidth = 2; ctx.stroke();
-
-    stagesEl.innerHTML = titles.map((t, i) => {
-      const shown = i <= stage;
-      const style = `padding:.2rem .5rem;border-left:3px solid ${i === stage ? "#1d4ed8" : "transparent"};background:${i === stage ? "#eef4ff" : "transparent"};opacity:${shown ? 1 : 0.4}`;
-      return `<div style="${style}"><b>${t}</b>${shown ? " — " + stageText(i, w, b, eta) : ""}</div>`;
-    }).join("");
-    nextBtn.textContent = stage < 3 ? "Next stage ▸" : "Apply update ▸ new round";
-    statsEl.innerHTML = `round ${round} &nbsp;|&nbsp; current loss L = ${f(loss(w, b))}`;
   }
 
-  function next() {
-    if (stage < 3) { stage++; draw(); return; }
-    const w = parseFloat(wInput.value);
-    const b = parseFloat(bInput.value);
-    const eta = parseFloat(etaInput.value);
-    const [gw, gb] = grad(w, b);
-    trail.push([w, b]);
-    wInput.value = clampW(w - eta * gw);
-    bInput.value = clampB(b - eta * gb);
-    stage = 0;
-    round++;
+  function runIteration() {
+    if (finished) return false;
+    const pass = calculate(w, b);
+    if (pass.loss <= convergenceLoss) {
+      finished = true;
+      stopPlay();
+      draw();
+      return false;
+    }
+
+    const nextW = w - FIXED_UPDATE_FACTOR * pass.gradients.w;
+    const nextB = b - FIXED_UPDATE_FACTOR * pass.gradients.b;
+    lastPass = { ...pass, nextW, nextB };
+    w = nextW;
+    b = nextB;
+    iteration += 1;
+    history.push([w, b]);
+
+    if (loss(w, b) <= convergenceLoss) {
+      finished = true;
+      stopPlay();
+    }
+    draw();
+    return !finished;
+  }
+
+  function reset() {
+    stopPlay();
+    w = Number(initWInput.value);
+    b = Number(initBInput.value);
+    iteration = 0;
+    history = [[w, b]];
+    lastPass = null;
+    finished = false;
     draw();
   }
 
-  function restart() { trail = []; stage = 0; round = 0; draw(); }
-
-  nextBtn.addEventListener("click", next);
-  resetBtn.addEventListener("click", () => {
-    wInput.value = 0.5; bInput.value = 0; etaInput.value = 0.1; restart();
+  stepBtn.addEventListener("click", () => {
+    if (timer !== null) stopPlay();
+    runIteration();
   });
-  [wInput, bInput].forEach((el) => el.addEventListener("input", restart));
-  etaInput.addEventListener("input", draw);
+
+  playBtn.addEventListener("click", () => {
+    if (timer !== null) {
+      stopPlay();
+      updateControls();
+      return;
+    }
+    if (finished) return;
+    playBtn.textContent = "Pause";
+    timer = setInterval(() => {
+      const keepGoing = runIteration();
+      if (!keepGoing) stopPlay();
+    }, 900);
+  });
+
+  resetBtn.addEventListener("click", reset);
+  [initWInput, initBInput].forEach((input) => {
+    input.addEventListener("input", reset);
+  });
 
   draw();
 })();
@@ -1469,11 +1696,11 @@ The **learning rate** $\eta$ is the size of the step:
 - **Too small:** learning is very slow and may get stuck.
 - **Just right:** the loss decreases steadily.
 
-> **Running example — stage 4.** Using the gradients from stage 3 and $\eta = 0.1$:
+> **Running example — update from the initial state.** Return to the same initial values used in Section 3.3.3: $w=0.5$ and $b=0$. The initial gradients are $\partial\mathcal{L}/\partial w=-8$ and $\partial\mathcal{L}/\partial b=-4$. With $\eta=0.1$:
 > $w \leftarrow 0.5 - 0.1 \times (-8) = 1.3$ and $b \leftarrow 0 - 0.1 \times (-4) = 0.4$.
-> Running the forward pass again with the new weights gives $\hat{y} = 1.3 \times 2 + 0.4 = 3.0$, which is exactly the target: the loss has dropped from 4 to 0 in a single step. The loop then starts over from stage 1 with the new weights.
+> Running the forward pass again with the new weights gives $\hat{y} = 1.3 \times 2 + 0.4 = 3.0$, which is exactly the target: the loss has dropped from 4 to 0 in a single step. This deliberately returns to the initial state so that the effect of changing $\eta$ can be isolated. The loop then repeats with the updated parameters.
 >
-> This one-step success is special to $\eta = 0.1$ and to this tiny neuron; in real networks many small steps are needed. For this neuron, one update multiplies the error $\hat{y}-y$ by $(1 - 10\eta)$ (the 10 comes from $2(x^2+1)$). At $\eta=0.1$ that factor is 0, at $\eta=0.2$ it is $-1$ (the error flips sign every step and never shrinks), and above $0.2$ it is larger than 1 in size, so the error grows. You can see all three behaviours in the stepper above; the widget below shows the same effect on an even simpler curve.
+> This one-step success is special to $\eta = 0.1$ and to this tiny neuron; in real networks many small steps are needed. For this neuron, one update multiplies the error $\hat{y}-y$ by $(1 - 10\eta)$ (the 10 comes from $2(x^2+1)$). At $\eta=0.1$ that factor is 0, at $\eta=0.2$ it is $-1$ (the error flips sign every step and never shrinks), and above $0.2$ it is larger than 1 in size, so the error grows. The interactive in this section lets you explore these behaviours with the learning-rate slider. The graph below shows the same effect on an even simpler one-parameter loss curve.
 
 <div id="eta-widget" class="aisafety-widget">
 <div class="aisw-controls">
