@@ -1267,6 +1267,7 @@ The **loss-landscape graph** shows the loss for different combinations of $w$ an
 
 To keep this section focused on how gradients are calculated and propagated, the interactive uses a small, fixed demonstration update step internally. Section 3.3.4 introduces the learning rate explicitly and lets you explore its effect.
 
+```{=html}
 <div id="bp-widget" class="aisafety-widget">
   <div class="aisw-controls">
     <label>Initial w
@@ -1681,6 +1682,7 @@ To keep this section focused on how gradients are calculated and propagated, the
   draw();
 })();
 </script>
+```
 
 ### 3.3.4 [Gradient descent](#glossary-gradient-descent) and the [learning rate](#glossary-learning-rate)
 
