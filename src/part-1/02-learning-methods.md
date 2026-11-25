@@ -256,9 +256,35 @@ $$
 
 ## 2.9 Combining Learning Paradigms in Practice
 
+### Transfer learning and fine-tuning
+
+**Transfer learning** reuses knowledge acquired on a source task or domain as the starting point for learning a target task or operating in a target domain. It can compensate for limited target-domain data or reduce the training time and data required to reach the target level of performance. In automotive AI, the source may be a general visual-recognition task, a different driving domain, or a simulation environment, while the target may be object detection in a fleet dataset, operation under a different sensor configuration, or deployment in a different geographic region.
+
+Transfer-learning methods can be classified by the information available in the source and target domains:
+
+- **Inductive transfer learning** uses labelled source information to support a related but different target task for which some labelled target data is available.
+- **Transductive transfer learning** transfers knowledge between domains while the source and target tasks remain the same; labelled source data may be used when target-domain labels are scarce or unavailable.
+- **Unsupervised transfer learning** transfers knowledge for unsupervised tasks when labelled data is unavailable in both the source and target domains.
+
+A second classification concerns the compatibility of the source and target representations. **Homogeneous transfer learning** applies when their feature and label spaces are consistent or sufficiently aligned. **Heterogeneous transfer learning** is needed when the domains use different feature spaces, and may also require bridging different label spaces; for example, transferring knowledge between camera- and lidar-based perception systems can require an explicit alignment between their representations.
+
+Transfer can occur through different forms of **fine-tuning**:
+
+- **Feature extraction** keeps the pretrained model as a fixed representation extractor and trains a new task-specific head.
+- **Partial fine-tuning** updates the task-specific components and a subset of the pretrained layers.
+- **Full fine-tuning** updates all or most model parameters using target-task data.
+
+It is also useful to distinguish between **task transfer**, where a model learned for one prediction task is adapted to another, and **domain adaptation**, where the task remains similar but the source and target data distributions differ. For example, a vision backbone pretrained by self-supervised learning on unlabelled images can be adapted to supervised pedestrian detection, while a model trained in simulation can be fine-tuned using real driving data to reduce the sim-to-real domain gap.
+
+Transfer learning is therefore not a separate learning paradigm alongside supervised or reinforcement learning. It is a training strategy that can be combined with those paradigms to reuse previously learned representations and reduce the target data or training effort required.
+
+Reusing a model trained on a large and diverse corpus can improve the generalisation and robustness of a model by supplying representations learned from more varied examples than the target dataset alone provides. These benefits are not automatic: the transferred model can also inherit biases or other undesirable emergent properties from the source data, training objective, or model. If the source and target domains, tasks, feature spaces, or label spaces are insufficiently related, adaptation can even reduce performance compared with training for the target domain alone. This is called **negative transfer**.
+
+For safety-related AI, the decision to transfer should therefore begin with an assessment of relatedness between the source and target domains, tasks, features, and labels, including differences in sensors, environments, operating conditions, and safety-relevant classes. That assessment should guide which knowledge is extracted and which components are frozen, adapted, replaced, or trained from scratch. Transfer learning does not remove the inherited risks or replace target-domain evidence: representative verification and validation must demonstrate that the adapted model meets the target domain's performance and safety KPIs, including measures of robustness, bias, and behaviour on rare or out-of-distribution cases.
+
 In practice, automotive AI systems rarely rely on a single learning paradigm. A common pattern is:
 
-1. **Self-supervised pretraining** on a large pool of unlabelled fleet data to learn general-purpose representations (Section 2.3).
+1. **Self-supervised pretraining** on a large pool of unlabelled fleet data to learn general-purpose representations that can be reused through transfer learning (Section 2.3).
 2. **Supervised fine-tuning** on a smaller, labelled (manually or automatically annotated) dataset for the specific task, such as object detection (Section 2.2).
 3. **Semi-supervised extension** of the labelled set using pseudo-labelling to cover rare cases more cheaply (Section 2.5).
 4. **Imitation and/or reinforcement learning**, often in simulation, to learn or refine a driving policy on top of the resulting perception and prediction models (Sections 2.6–2.7).
